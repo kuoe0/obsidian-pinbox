@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
+	"id": "pin-to-share",
+	"name": "Pin to Share",
+	"version": "0.0.1",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"description": "Pin to Share is a plugin for Obsidian that allows you to pin notes to the top of your share menu, making it easier to access frequently shared notes.",
+	"author": "kuoe0",
+	"authorUrl": "",
+	"fundingUrl": "",
 	"isDesktopOnly": false
 }
