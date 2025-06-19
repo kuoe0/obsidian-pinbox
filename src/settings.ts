@@ -36,11 +36,10 @@ export class PinboxSettingTab extends PluginSettingTab {
 			text: "If you like this plugin, please consider supporting my work:",
 		});
 
-		// TODO: smaller "Buy me a coffee" button
 		const coffeeDiv = containerEl.createDiv({ cls: "coffee-div" });
 		const coffeeLink = `
             <a href="https://www.buymeacoffee.com/kuoe0" target="_blank">
-              <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" >
+              <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 108px !important;" >
             </aㄜ
         `;
 		coffeeDiv.innerHTML = coffeeLink;
@@ -49,9 +48,9 @@ export class PinboxSettingTab extends PluginSettingTab {
 			.setName("Pin a new note")
 			.setDesc("Add a note to your quick-share list.")
 			.addButton((button) => {
-				// TODO: Add icon to button
 				button
-					.setButtonText("Pin Note")
+					.setIcon("plus-with-circle")
+					.setTooltip("Pin a new note")
 					.setCta()
 					.onClick(() => {
 						new NoteSuggesterModal(this.app, this.plugin, () => {
