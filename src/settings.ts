@@ -39,8 +39,82 @@ export class PinboxSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	private createFormatEditor(
+		ownerSetting: Setting,
+		targetControlContainer: HTMLElement,
+		getCurrentValue: () => string,
+		onValueChange: (newValue: string) => Promise<void>,
+		getResetValue: () => string,
+		onResetConfirmed: () => Promise<void>,
+		resetTooltipText: string,
+		getCopyValue?: () => string
+	): void {
+		let textArea: TextComponent;
+		ownerSetting.addTextArea((text: TextComponent) => {
+			textArea = text;
+			text.setValue(getCurrentValue())
+				.setPlaceholder(getResetValue()) // Use reset value as placeholder
+				.onChange(async (value) => {
+					await onValueChange(value);
+				});
+			text.inputEl.style.minHeight = "6em";
+			text.inputEl.style.resize = "vertical";
+			text.inputEl.style.overflowY = "auto";
+		});
+		targetControlContainer.appendChild(textArea!.inputEl);
+
+		// Button Container
+		const buttonContainer = targetControlContainer.createDiv({
+			cls: "pinbox-button-container",
+		});
+
+		// Reset Button
+		let resetButtonEl: HTMLButtonElement;
+		ownerSetting.addButton((button) => {
+			button
+				.setIcon("rotate-ccw")
+				.setTooltip(resetTooltipText)
+				.onClick(async () => {
+					await onResetConfirmed();
+				});
+			resetButtonEl = button.buttonEl;
+		});
+		buttonContainer.appendChild(resetButtonEl!);
+
+		// Copy Button
+		let copyButtonEl: HTMLButtonElement;
+		ownerSetting.addButton((button) => {
+			button
+				.setIcon("copy")
+				.setTooltip("Copy format to clipboard")
+				.onClick(async () => {
+					const valueToCopy = getCopyValue
+						? getCopyValue()
+						: getCurrentValue();
+					await navigator.clipboard.writeText(valueToCopy);
+					new Notice("Format copied to clipboard!");
+				});
+			copyButtonEl = button.buttonEl;
+		});
+		buttonContainer.appendChild(copyButtonEl!);
+	}
+
+	private async handleFormatChange(
+		saveFunction: (value: string) => void,
+		value: string,
+		refreshDisplay: boolean
+	) {
+		saveFunction(value);
+		await this.plugin.saveSettings();
+		if (refreshDisplay) {
+			this.display();
+		}
+	}
 	display(): void {
 		const { containerEl } = this;
+		// Store the current scroll position
+		const scrollPosition = containerEl.scrollTop;
+
 		containerEl.empty();
 		this.addResponsiveCSS();
 
@@ -69,65 +143,32 @@ export class PinboxSettingTab extends PluginSettingTab {
 				"Set the default format for new pins and bookmarked notes.Placeholders: {{content}}, {{timestamp}} (YYYY-MM-DD HH:mm:ss), {{date}} (YYYY-MM-DD), {{time}} (HH:mm:ss)."
 			);
 
-		const controlContainer = globalSetting.controlEl.createDiv({
+		const globalControlContainer = globalSetting.controlEl.createDiv({
 			cls: "pinbox-control-container",
 		});
 
-		globalSetting.addTextArea((text: TextComponent) => {
-			text.setValue(this.plugin.settings.globalDefaultFormat)
-				.setPlaceholder(DEFAULT_PINNED_NOTE_FORMAT)
-				.onChange(async (value) => {
-					this.plugin.settings.globalDefaultFormat = value;
-					await this.plugin.saveSettings();
-					// Refresh to update placeholders in pinned notes
-					this.display();
-				});
-			text.inputEl.style.minHeight = "6em";
-			text.inputEl.style.resize = "vertical";
-			text.inputEl.style.overflowY = "auto";
-		});
-
-		controlContainer.appendChild(
-			globalSetting.components[globalSetting.components.length - 1]
-				.inputEl
-		);
-
-		const buttonContainer = controlContainer.createDiv({
-			cls: "pinbox-button-container",
-		});
-
-		globalSetting.addButton((button) => {
-			button
-				.setIcon("rotate-ccw")
-				.setTooltip("Reset to default format")
-				.onClick(async () => {
-					this.plugin.settings.globalDefaultFormat =
-						DEFAULT_PINNED_NOTE_FORMAT;
-					await this.plugin.saveSettings();
-					this.display();
-				});
-		});
-
-		buttonContainer.appendChild(
-			globalSetting.components[globalSetting.components.length - 1]
-				.buttonEl
-		);
-
-		globalSetting.addButton((button) => {
-			button
-				.setIcon("copy")
-				.setTooltip("Copy format to clipboard")
-				.onClick(async () => {
-					await navigator.clipboard.writeText(
-						this.plugin.settings.globalDefaultFormat
-					);
-					new Notice("Format copied to clipboard!");
-				});
-		});
-
-		buttonContainer.appendChild(
-			globalSetting.components[globalSetting.components.length - 1]
-				.buttonEl
+		this.createFormatEditor(
+			globalSetting,
+			globalControlContainer,
+			() => this.plugin.settings.globalDefaultFormat,
+			/* onValueChange= */ async (value) => {
+				await this.handleFormatChange(
+					(v) => (this.plugin.settings.globalDefaultFormat = v),
+					value,
+					false
+				);
+			},
+			() => DEFAULT_PINNED_NOTE_FORMAT, // getResetValue (also for placeholder)
+			/* onResetConfirmed= */ async () => {
+				await this.handleFormatChange(
+					(_) =>
+						(this.plugin.settings.globalDefaultFormat =
+							DEFAULT_PINNED_NOTE_FORMAT),
+					DEFAULT_PINNED_NOTE_FORMAT,
+					true
+				);
+			},
+			"Reset to default format"
 		);
 
 		new Setting(containerEl)
@@ -175,11 +216,10 @@ export class PinboxSettingTab extends PluginSettingTab {
 
 		containerEl.createEl("h3", { text: "Pinned Notes" });
 
-
 		if (this.plugin.settings.pinnedNotes.length === 0) {
 			containerEl.createEl("p", { text: "No notes are pinned yet." });
 		} else {
-		const settingFactory = new Setting(containerEl);
+			const settingFactory = new Setting(containerEl); // Used as a factory for components
 			this.plugin.settings.pinnedNotes.forEach((pinnedNote, index) => {
 				const noteName =
 					pinnedNote.path.split("/").pop()?.replace(".md", "") ||
@@ -203,147 +243,52 @@ export class PinboxSettingTab extends PluginSettingTab {
 					cls: "pinbox-move-buttons",
 				});
 
-				new Setting(moveButtons)
-					.addExtraButton((button) => {
-						button
-							.setIcon("arrow-up")
-							.setTooltip("Move up")
-							.setDisabled(index === 0) // Disable for the first item
-							.onClick(async () => {
-								if (index > 0) {
-									// Swap elements
-									[
-										this.plugin.settings.pinnedNotes[index],
-										this.plugin.settings.pinnedNotes[
-											index - 1
-										],
-									] = [
-										this.plugin.settings.pinnedNotes[
-											index - 1
-										],
-										this.plugin.settings.pinnedNotes[index],
-									];
-									await this.plugin.saveSettings();
-
-									// Refresh settings tab
-									this.display();
-								}
-							});
-					})
-					.addExtraButton((button) => {
-						button
-							.setIcon("arrow-down")
-							.setTooltip("Move down")
-							.setDisabled(
-								index ===
-									this.plugin.settings.pinnedNotes.length - 1
-							) // Disable for the last item
-							.onClick(async () => {
-								if (
-									index <
-									this.plugin.settings.pinnedNotes.length - 1
-								) {
-									// Swap elements
-									[
-										this.plugin.settings.pinnedNotes[index],
-										this.plugin.settings.pinnedNotes[
-											index + 1
-										],
-									] = [
-										this.plugin.settings.pinnedNotes[
-											index + 1
-										],
-										this.plugin.settings.pinnedNotes[index],
-									];
-									await this.plugin.saveSettings();
-									// Refresh settings tab
-									this.display();
-								}
-							});
-					})
-					.addExtraButton((button) => {
-						button
-							.setIcon("trash")
-							.setTooltip("Unpin note")
-							// .setCta() // Make unpin button more prominent
-							.onClick(async () => {
-								this.plugin.settings.pinnedNotes.splice(
-									index,
-									1
-								);
-								await this.plugin.saveSettings();
-								this.display();
-							});
-					});
+				this.createPinnedNoteControls(moveButtons, index);
 
 				const controlEl = settingItem.createDiv({
 					cls: "setting-item-control",
 				});
 
-				const controlContainer = controlEl.createDiv({
+				const pinnedNoteControlContainer = controlEl.createDiv({
 					cls: "pinbox-control-container",
 				});
 
-				// Use settingFactory to create a text area for custom format
-				// and move it out from the settingFactory to controlContainer.
-				settingFactory.addTextArea((text: TextComponent) => {
-					text.setValue(pinnedNote.customFormat);
-					text.inputEl.style.overflowY = "auto";
-					text.inputEl.style.minHeight = "6em";
-					text.inputEl.style.resize = "vertical";
-				});
-				controlContainer.appendChild(
-					settingFactory.components[
-						settingFactory.components.length - 1
-					].inputEl
-				);
-
-				const buttonContainer = controlContainer.createDiv({
-					cls: "pinbox-button-container",
-				});
-
-				settingFactory.addButton((button) => {
-					// Reset to global default format button
-					button
-						.setIcon("rotate-ccw") // Icon for reset
-						.setTooltip("Reset format to global default")
-						.onClick(async () => {
-							this.plugin.settings.pinnedNotes[
-								index
-							].customFormat =
-								this.plugin.settings.globalDefaultFormat;
-							await this.plugin.saveSettings();
-							this.display();
-						});
-				});
-				buttonContainer.appendChild(
-					settingFactory.components[
-						settingFactory.components.length - 1
-					].buttonEl
-				);
-
-				settingFactory.addButton((button) => {
-					button
-						.setIcon("copy") // Icon for copy
-						.setTooltip("Copy format to clipboard")
-						.onClick(async () => {
-							await navigator.clipboard.writeText(
-								pinnedNote.customFormat
+				this.createFormatEditor(
+					settingFactory,
+					pinnedNoteControlContainer,
+					() => pinnedNote.customFormat,
+					/* onValueChange= */ async (value) => {
+						// Ensure we are updating the correct note in the array
+						const currentPinnedNote =
+							this.plugin.settings.pinnedNotes[index];
+						if (currentPinnedNote) {
+							await this.handleFormatChange(
+								(v) => (currentPinnedNote.customFormat = v),
+								value,
+								false // No full refresh, text area updates itself
 							);
-							new Notice("Format copied to clipboard!");
-						});
-				});
-
-				buttonContainer.appendChild(
-					settingFactory.components[
-						settingFactory.components.length - 1
-					].buttonEl
+						}
+					},
+					() => this.plugin.settings.globalDefaultFormat, // getResetValue (for placeholder)
+					async () => {
+						// onResetConfirmed
+						const currentPinnedNote =
+							this.plugin.settings.pinnedNotes[index];
+						if (currentPinnedNote) {
+							await this.handleFormatChange(
+								(v) => (currentPinnedNote.customFormat = v),
+								this.plugin.settings.globalDefaultFormat,
+								true
+							);
+						}
+					},
+					"Reset format to global default",
+					() => pinnedNote.customFormat // getCopyValue
 				);
 			});
 
-      // Remove the settingFactory components to remove it from the DOM.
-      settingFactory.settingEl.remove();
-
+			// Remove the settingFactory's main element as it was only used for component creation
+			settingFactory.settingEl.remove();
 		}
 
 		containerEl.createEl("hr");
@@ -389,6 +334,71 @@ export class PinboxSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					})
 			);
+
+		// Restore the scroll position after a short delay to allow the DOM to update
+		requestAnimationFrame(() => {
+			containerEl.scrollTop = scrollPosition;
+		});
+	}
+
+	private createPinnedNoteControls(
+		parentElement: HTMLElement,
+		index: number
+	): void {
+		new Setting(parentElement)
+			.addExtraButton((button) => {
+				button
+					.setIcon("arrow-up")
+					.setTooltip("Move up")
+					.setDisabled(index === 0)
+					.onClick(async () => {
+						if (index > 0) {
+							[
+								this.plugin.settings.pinnedNotes[index],
+								this.plugin.settings.pinnedNotes[index - 1],
+							] = [
+								this.plugin.settings.pinnedNotes[index - 1],
+								this.plugin.settings.pinnedNotes[index],
+							];
+							await this.plugin.saveSettings();
+							this.display();
+						}
+					});
+			})
+			.addExtraButton((button) => {
+				button
+					.setIcon("arrow-down")
+					.setTooltip("Move down")
+					.setDisabled(
+						index === this.plugin.settings.pinnedNotes.length - 1
+					)
+					.onClick(async () => {
+						if (
+							index <
+							this.plugin.settings.pinnedNotes.length - 1
+						) {
+							[
+								this.plugin.settings.pinnedNotes[index],
+								this.plugin.settings.pinnedNotes[index + 1],
+							] = [
+								this.plugin.settings.pinnedNotes[index + 1],
+								this.plugin.settings.pinnedNotes[index],
+							];
+							await this.plugin.saveSettings();
+							this.display();
+						}
+					});
+			})
+			.addExtraButton((button) => {
+				button
+					.setIcon("trash")
+					.setTooltip("Unpin note")
+					.onClick(async () => {
+						this.plugin.settings.pinnedNotes.splice(index, 1);
+						await this.plugin.saveSettings();
+						this.display();
+					});
+			});
 	}
 
 	// Custom CSS for responsive design
