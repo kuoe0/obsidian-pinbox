@@ -10,6 +10,12 @@ Pinbox is an Obsidian plugin designed to instantly capture content like text sni
 *   **Per-Note Custom Format:** Override the global default and set a unique append format for each individual pinned note.
 *   **Path Auto-Update:** Pinned note paths are automatically updated if you rename or move the file within Obsidian.
 
+## Screenshots
+
+![Screenshot 1](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-1.png?raw=true)
+![Screenshot 2](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-2.png?raw=true)
+![Screenshot 3](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-3.png?raw=true)
+
 ## Settings Overview
 
 The Pinbox settings tab allows you to:
