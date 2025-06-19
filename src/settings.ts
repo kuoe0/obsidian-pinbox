@@ -128,12 +128,20 @@ export class PinboxSettingTab extends PluginSettingTab {
 		});
 
 		const coffeeDiv = containerEl.createDiv({ cls: "coffee-div" });
-		const coffeeLink = `
-            <a href="https://www.buymeacoffee.com/kuoe0" target="_blank">
-              <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 108px !important;" >
-            </a>
-        `;
-		coffeeDiv.innerHTML = coffeeLink;
+		const coffeeLinkEl = coffeeDiv.createEl("a", {
+			attr: {
+				href: "https://www.buymeacoffee.com/kuoe0",
+				target: "_blank",
+			}
+		});
+
+		coffeeLinkEl.createEl("img", {
+			attr: {
+				src: "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png",
+				alt: "Buy Me A Coffee",
+				style: "height: 30px !important;width: 108px !important;",
+			}
+		});
 
 		containerEl.createEl("h3", { text: "Global Settings" });
 

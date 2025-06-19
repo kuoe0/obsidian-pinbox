@@ -15,6 +15,18 @@ function isUrl(text: string): boolean {
 	}
 }
 
+// Interfaces for improved type safety when accessing the internal Bookmarks plugin
+interface ObsidianBookmarkItem {
+	type: 'file' | 'group' | 'search' | 'url' | string; // Allow other types
+	path?: string; // for type: 'file'
+	title?: string;
+	// other properties that might exist
+}
+
+interface ObsidianBookmarksPluginInstance {
+	getBookmarks: () => ObsidianBookmarkItem[];
+}
+
 export default class PinboxPlugin extends Plugin {
 	settings: PinboxSettings;
 
@@ -96,16 +108,15 @@ export default class PinboxPlugin extends Plugin {
 					const bookmarkedFilePaths: string[] = [];
 					if (this.settings.enableObsidianBookmark) {
 						// @ts-ignore
-						const bookmarksPlugin =
-							this.app.internalPlugins?.plugins["bookmarks"];
+						const bookmarksPlugin = this.app.internalPlugins?.plugins["bookmarks"];
 						if (
 							bookmarksPlugin &&
 							bookmarksPlugin.enabled &&
 							bookmarksPlugin.instance
 						) {
-							// @ts-ignore
-							const bookmarkedItems =
-								bookmarksPlugin.instance.getBookmarks();
+							const bookmarksInstance = bookmarksPlugin.instance as ObsidianBookmarksPluginInstance;
+							const bookmarkedItems: ObsidianBookmarkItem[] = bookmarksInstance.getBookmarks();
+
 							for (const item of bookmarkedItems) {
 								if (item.type === "file") {
 									const file =
