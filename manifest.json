@@ -1,9 +1,9 @@
 {
 	"id": "pinbox",
 	"name": "Pinbox",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"minAppVersion": "0.15.0",
-	"description": "Pin to Share is a plugin for Obsidian that allows you to pin notes to the top of your share menu on the mobile app (Android/iOS), making it easier to access frequently shared notes.",
+	"description": "Instantly capture content to pinned notes.",
 	"author": "kuoe0",
 	"authorUrl": "https://github.com/kuoe0",
 	"fundingUrl": "https://coff.ee/kuoe0",
