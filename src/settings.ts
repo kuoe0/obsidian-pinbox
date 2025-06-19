@@ -61,7 +61,9 @@ export class PinboxSettingTab extends PluginSettingTab {
 
 		containerEl.createEl("h3", { text: "Pinned Notes" });
 		// TODO: Support to reorder pinned notes
-		containerEl.createEl("p", { text: "Note: Reordering of pinned notes is not yet supported. This feature is coming soon!" });
+		containerEl.createEl("p", {
+			text: "Note: Reordering of pinned notes is not yet supported. This feature is coming soon!",
+		});
 
 		if (this.plugin.settings.pinnedNotePaths.length === 0) {
 			containerEl.createEl("p", { text: "No notes are pinned yet." });
@@ -91,23 +93,30 @@ export class PinboxSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName("Enable debug mode")
-			.setDesc("Show extra notices for debugging, e.g., when saving shared text.")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.debugMode)
-				.onChange(async (value) => {
-					this.plugin.settings.debugMode = value;
-					await this.plugin.saveSettings();
-				}));
+			.setDesc(
+				"Show extra notices for debugging, e.g., when saving shared text."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.debugMode)
+					.onChange(async (value) => {
+						this.plugin.settings.debugMode = value;
+						await this.plugin.saveSettings();
+					})
+			);
 
 		new Setting(containerEl)
 			.setName("Go to note after saving")
-			.setDesc("Automatically open the note after successfully appending shared text.")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.goToNoteAfterSave)
-				.onChange(async (value) => {
-					this.plugin.settings.goToNoteAfterSave = value;
-					await this.plugin.saveSettings();
-				}));
-
+			.setDesc(
+				"Automatically open the note after successfully appending shared text."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.goToNoteAfterSave)
+					.onChange(async (value) => {
+						this.plugin.settings.goToNoteAfterSave = value;
+						await this.plugin.saveSettings();
+					})
+			);
 	}
 }
