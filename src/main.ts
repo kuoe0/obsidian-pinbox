@@ -23,29 +23,70 @@ export default class PinboxPlugin extends Plugin {
                            .setTitle(`Append to ${noteName}`)
                            .setIcon('pin')
                            .onClick(async () => {
-                                // TODO: Support custom formatting or metadata (date/time, etc.) with default formatting for each pinned note.
-                                // TODO: Add date/time or other metadata if needed
-                                // TODO: If it's a URL，format it as Markdown link (if we can fetch the title , use it)
-                                const formattedText = `\n${shareText}\n---\n`;
+								// TODO: Attempt to fetch the page title if it's a link.
+								const now = new Date();
+								const timestamp = `${now.getFullYear()}-${(
+									now.getMonth() + 1
+								)
+									.toString()
+									.padStart(2, "0")}-${now
+									.getDate()
+									.toString()
+									.padStart(2, "0")} ${now
+									.getHours()
+									.toString()
+									.padStart(2, "0")}:${now
+									.getMinutes()
+									.toString()
+									.padStart(2, "0")}`;
 
-                                // TODO: add debug mode option in settings to enable debug notice
-                                new Notice(`Saving...\n${formattedText}`);
+								// TODO: Support custom formatting (e.g. add tags, etc.) each pinned note in settings.
+								const formattedText = `\n\n---\n${shareText}\n@${timestamp}\n\n---\n`;
 
-                                try {
-                                    await this.app.vault.adapter.append(notePath, formattedText);
-                                    new Notice(`Link saved to ${noteName}`);
-                                } catch (error) {
-                                    new Notice(`Failed to save to ${noteName}. See console for details.`);
-                                    console.error("Pin-to-Share Error:", error);
-                                }
+								if (this.settings.debugMode) {
+									new Notice(
+										`Saving to ${noteName}...\n${formattedText.substring(
+											0,
+											100
+										)}...`
+									);
+								}
 
-                                // TODO: Add an option to show bookmarks in the menu if enabled
-                                // TODO: Add an option to go to the note after saving if enabled
-                            });
+								try {
+									await this.app.vault.adapter.append(
+										notePath,
+										formattedText
+									);
+									new Notice(`Link saved to ${noteName}`);
+
+									if (this.settings.goToNoteAfterSave) {
+										const abstractFile =
+											this.app.vault.getAbstractFileByPath(
+												notePath
+											);
+										if (abstractFile instanceof TFile) {
+											const leaf =
+												this.app.workspace.getLeaf(
+													false
+												);
+											await leaf.openFile(abstractFile);
+										} else {
+											new Notice(
+												`Error: Pinned note "${noteName}" not found at path: ${notePath}`
+											);
+										}
+									}
+								} catch (error) {
+									new Notice(
+										`Failed to save to ${noteName}. See console for details.`
+									);
+									console.error("Pin-to-Share Error:", error);
+								}
+							});
                     });
                 });
 
-                // TODO: add bookmark pinning options if enabled
+                // TODO: Add bookmark pinning options if enabled
             })
         );
 
