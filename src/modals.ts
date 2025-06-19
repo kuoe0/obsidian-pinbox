@@ -1,10 +1,13 @@
-import { App, FuzzySuggestModal, TFile, Notice } from "obsidian";
+import { App, FuzzySuggestModal, TFile } from "obsidian";
+import { PinnedNote } from "./settings"; // Removed DEFAULT_PINNED_NOTE_FORMAT import as it's passed
 
 export class NoteSuggesterModal extends FuzzySuggestModal<TFile> {
-	onChooseFileCallback: (file: TFile) => Promise<void>;
+	onChooseFileCallback: (file: TFile, newPinnedNote: PinnedNote) => Promise<void>;
+	currentGlobalFormat: string;
 
-	constructor(app: App, onChooseFile: (file: TFile) => Promise<void>) {
+	constructor(app: App, globalDefaultFormat: string, onChooseFile: (file: TFile, newPinnedNote: PinnedNote) => Promise<void>) {
 		super(app);
+		this.currentGlobalFormat = globalDefaultFormat;
 		this.onChooseFileCallback = onChooseFile;
 		this.setPlaceholder("Search for a note to pin...");
 	}
@@ -18,6 +21,10 @@ export class NoteSuggesterModal extends FuzzySuggestModal<TFile> {
 	}
 
 	async onChooseItem(item: TFile): Promise<void> {
-		await this.onChooseFileCallback(item);
+		const newPinnedNote: PinnedNote = {
+			path: item.path,
+			customFormat: this.currentGlobalFormat, // Use the passed global default format
+		};
+		await this.onChooseFileCallback(item, newPinnedNote);
 	}
 }

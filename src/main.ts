@@ -1,5 +1,5 @@
 import { Plugin, TAbstractFile, TFile, Notice, Menu } from "obsidian";
-import { PinboxSettingTab, PinboxSettings, DEFAULT_SETTINGS } from "./settings";
+import { PinboxSettingTab, PinboxSettings, DEFAULT_SETTINGS, DEFAULT_PINNED_NOTE_FORMAT } from "./settings";
 
 function isUrl(text: string): boolean {
 	try {
@@ -13,25 +13,29 @@ function isUrl(text: string): boolean {
 export default class PinboxPlugin extends Plugin {
 	settings: PinboxSettings;
 
-	private async appendContentToNote(notePath: string, content: string, noteNameForDisplay: string) {
+	private processPlaceholders(format: string, content: string): string {
 		const now = new Date();
-		const timestamp = `${now.getFullYear()}-${(
-			now.getMonth() + 1
-		)
-			.toString()
-			.padStart(2, "0")}-${now
-			.getDate()
-			.toString()
-			.padStart(2, "0")} ${now
-			.getHours()
-			.toString()
-			.padStart(2, "0")}:${now
-			.getMinutes()
-			.toString()
-			.padStart(2, "0")}`;
+		const date = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")}`;
+		const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+		const timestamp = `${date} ${time}`;
 
-		// TODO: Feature: Support custom formatting (e.g. add tags, etc.) for each pinned note in settings. This would involve extending PinboxSettings.
-		const formattedText = `\n\n---\n${content}\n@${timestamp}\n\n---\n`;
+		// Basic placeholder replacement
+		let processedText = format.replace(/{{content}}/g, content);
+		processedText = processedText.replace(/{{timestamp}}/g, timestamp);
+		processedText = processedText.replace(/{{date}}/g, date);
+		processedText = processedText.replace(/{{time}}/g, time);
+
+		// TODO: Add more advanced placeholder processing if needed (e.g., {{link}}, {{title}} from URL)
+		return processedText;
+	}
+
+	private async appendContentToNote(
+		notePath: string,
+		customFormat: string,
+		shareText: string,
+		noteNameForDisplay: string
+	) {
+		const formattedText = this.processPlaceholders(customFormat, shareText);
 
 		if (this.settings.debugMode) {
 			new Notice(
@@ -43,25 +47,14 @@ export default class PinboxPlugin extends Plugin {
 		}
 
 		try {
-			await this.app.vault.adapter.append(
-				notePath,
-				formattedText
-			);
+			await this.app.vault.adapter.append(notePath, formattedText);
 			new Notice(`Content saved to ${noteNameForDisplay}`);
 
 			if (this.settings.goToNoteAfterSave) {
-				const abstractFile =
-					this.app.vault.getAbstractFileByPath(
-						notePath
-					);
+				const abstractFile = this.app.vault.getAbstractFileByPath(notePath);
 				if (abstractFile instanceof TFile) {
-					const leaf =
-						this.app.workspace.getLeaf(
-							false
-						);
-					await leaf.openFile(
-						abstractFile
-					);
+					const leaf = this.app.workspace.getLeaf(false);
+					await leaf.openFile(abstractFile);
 				} else {
 					new Notice(
 						`Error: Note "${noteNameForDisplay}" not found at path: ${notePath}`
@@ -72,10 +65,7 @@ export default class PinboxPlugin extends Plugin {
 			new Notice(
 				`Failed to save to ${noteNameForDisplay}. See console for details.`
 			);
-			console.error(
-				"Pinbox Error:",
-				error
-			);
+			console.error("Pinbox Error:", error);
 		}
 	}
 
@@ -87,10 +77,10 @@ export default class PinboxPlugin extends Plugin {
 		// Register share menu on the mobile app
 		this.registerEvent(
 			this.app.workspace.on(
-        //@ts-ignore
-        "receive-text-menu",
+				//@ts-ignore
+				"receive-text-menu",
 				(menu: Menu, shareText: string) => {
-					const hasPinnedNotes = this.settings.pinnedNotePaths.length > 0;
+					const hasPinnedNotes = this.settings.pinnedNotes.length > 0;
 
 					const bookmarkedFilePaths: string[] = [];
 					if (this.settings.enableObsidianBookmark) {
@@ -115,19 +105,24 @@ export default class PinboxPlugin extends Plugin {
 
 					if (hasPinnedNotes) {
 						menu.addSeparator();
-						this.settings.pinnedNotePaths.forEach((notePath) => {
-						menu.addItem((item) => {
-							const noteName = notePath
-								.split("/")
-								.pop()
-								?.replace(".md", "");
-							item.setTitle(`Append to ${noteName}`)
-								.setIcon("pin")
-								.onClick(async () => {
-									await this.appendContentToNote(notePath, shareText, noteName || "Pinned Note");
-								});
+						this.settings.pinnedNotes.forEach((pinnedNote) => {
+							menu.addItem((item) => {
+								const noteName = pinnedNote.path
+									.split("/")
+									.pop()
+									?.replace(".md", "");
+								item.setTitle(`Append to ${noteName}`)
+									.setIcon("pin")
+									.onClick(async () => {
+										await this.appendContentToNote(
+											pinnedNote.path,
+											pinnedNote.customFormat || DEFAULT_PINNED_NOTE_FORMAT,
+											shareText,
+											noteName || "Pinned Note"
+										);
+									});
+							});
 						});
-					});
 					}
 
 					if (hasBookmarkedNotes) {
@@ -138,7 +133,15 @@ export default class PinboxPlugin extends Plugin {
 								item.setTitle(`Append to ${noteName}`)
 									.setIcon("bookmark")
 									.onClick(async () => {
-										await this.appendContentToNote(notePath, shareText, noteName || "Bookmarked Note");
+										// For bookmarked notes, we use a default format as they
+                    // don't have custom formats stored in this plugin's
+                    // settings.
+										await this.appendContentToNote(
+											notePath,
+											this.settings.globalDefaultFormat,
+											shareText,
+											noteName || "Bookmarked Note"
+										);
 									});
 							});
 						});
@@ -152,7 +155,7 @@ export default class PinboxPlugin extends Plugin {
 		);
 	}
 
-	onunload() {}
+	onunload() { }
 
 	async loadSettings() {
 		this.settings = Object.assign(
@@ -160,6 +163,28 @@ export default class PinboxPlugin extends Plugin {
 			DEFAULT_SETTINGS,
 			await this.loadData()
 		);
+
+		let settingsWereModified = false;
+
+		// Ensure globalDefaultFormat exists (for migration from older versions)
+		if (typeof this.settings.globalDefaultFormat === 'undefined') {
+			this.settings.globalDefaultFormat = DEFAULT_SETTINGS.globalDefaultFormat; // Use the one from DEFAULT_SETTINGS
+			settingsWereModified = true;
+		}
+
+		// Ensure all pinned notes have a customFormat (for migration from older versions)
+		if (this.settings.pinnedNotes) {
+			this.settings.pinnedNotes.forEach(pn => {
+				if (typeof pn.customFormat === 'undefined') {
+					// Initialize with global default
+					pn.customFormat = this.settings.globalDefaultFormat;
+					settingsWereModified = true;
+				}
+			});
+		}
+		if (settingsWereModified) {
+			await this.saveSettings();
+		}
 	}
 
 	async saveSettings() {
@@ -171,16 +196,16 @@ export default class PinboxPlugin extends Plugin {
 
 		let settingsChanged = false;
 
-		const index = this.settings.pinnedNotePaths.indexOf(oldPath);
-		if (index > -1) {
-			this.settings.pinnedNotePaths[index] = file.path;
-			settingsChanged = true;
-			new Notice(`Pinned note path "${oldPath}" updated to "${file.path}".`);
-		}
+		this.settings.pinnedNotes.forEach((pinnedNote) => {
+			if (pinnedNote.path === oldPath) {
+				pinnedNote.path = file.path;
+				settingsChanged = true;
+				new Notice(`Pinned note path "${oldPath}" updated to "${file.path}".`);
+			}
+		});
 
 		if (settingsChanged) {
 			await this.saveSettings();
 		}
 	}
-
 }
