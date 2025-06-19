@@ -44,7 +44,6 @@ export class PinboxSettingTab extends PluginSettingTab {
 		containerEl.empty();
 		this.addResponsiveCSS();
 
-		// TODO: Better styling for settings page
 		containerEl.createEl("h2", { text: "Pinbox Settings" });
 		containerEl.createEl("p", {
 			text: "Pinbox allows you to pin notes for quick access when sharing links or text on Android/iOS.",
@@ -80,15 +79,14 @@ export class PinboxSettingTab extends PluginSettingTab {
 				.onChange(async (value) => {
 					this.plugin.settings.globalDefaultFormat = value;
 					await this.plugin.saveSettings();
-          // Refresh to update placeholders in pinned notes
+					// Refresh to update placeholders in pinned notes
 					this.display();
 				});
 			text.inputEl.style.minHeight = "6em";
-			text.inputEl.style.resize = "none";
-			text.inputEl.style.overflowY = "scroll";
+			text.inputEl.style.resize = "vertical";
+			text.inputEl.style.overflowY = "auto";
 		});
 
-    // Move button to container
 		controlContainer.appendChild(
 			globalSetting.components[globalSetting.components.length - 1]
 				.inputEl
@@ -117,7 +115,7 @@ export class PinboxSettingTab extends PluginSettingTab {
 
 		globalSetting.addButton((button) => {
 			button
-				.setIcon("copy") // Icon for copy
+				.setIcon("copy")
 				.setTooltip("Copy format to clipboard")
 				.onClick(async () => {
 					await navigator.clipboard.writeText(
@@ -167,9 +165,8 @@ export class PinboxSettingTab extends PluginSettingTab {
 								);
 								await this.plugin.saveSettings();
 								new Notice(`Pinned "${file.basename}"`);
-								// TODO: Add a small explanation of how to use placeholders like {{content}} and {{timestamp}}
 
-                // Refresh settings tab
+								// Refresh settings tab
 								this.display();
 							}
 						).open();
@@ -177,43 +174,135 @@ export class PinboxSettingTab extends PluginSettingTab {
 			});
 
 		containerEl.createEl("h3", { text: "Pinned Notes" });
-		// TODO: Support to reorder pinned notes
-		containerEl.createEl("p", {
-			text: "Note: Reordering of pinned notes is not yet supported. This feature is coming soon!",
-		});
+
 
 		if (this.plugin.settings.pinnedNotes.length === 0) {
 			containerEl.createEl("p", { text: "No notes are pinned yet." });
 		} else {
+		const settingFactory = new Setting(containerEl);
 			this.plugin.settings.pinnedNotes.forEach((pinnedNote, index) => {
 				const noteName =
 					pinnedNote.path.split("/").pop()?.replace(".md", "") ||
 					"Note";
 
-				const setting = new Setting(containerEl)
-					.setName(noteName)
-					.setDesc(
-            `Path: ${pinnedNote.path}`);
+				const settingItem = containerEl.createDiv({
+					cls: "setting-item",
+				});
 
-				const controlContainer = setting.controlEl.createDiv({
+				const infoEl = settingItem.createDiv({
+					cls: "setting-item-info",
+				});
+				infoEl.createDiv({ cls: "setting-item-name", text: noteName });
+				infoEl.createDiv({
+					cls: "setting-item-description",
+					text: `Path: ${pinnedNote.path}`,
+				});
+
+				// Add move buttons below the name/path
+				const moveButtons = infoEl.createDiv({
+					cls: "pinbox-move-buttons",
+				});
+
+				new Setting(moveButtons)
+					.addExtraButton((button) => {
+						button
+							.setIcon("arrow-up")
+							.setTooltip("Move up")
+							.setDisabled(index === 0) // Disable for the first item
+							.onClick(async () => {
+								if (index > 0) {
+									// Swap elements
+									[
+										this.plugin.settings.pinnedNotes[index],
+										this.plugin.settings.pinnedNotes[
+											index - 1
+										],
+									] = [
+										this.plugin.settings.pinnedNotes[
+											index - 1
+										],
+										this.plugin.settings.pinnedNotes[index],
+									];
+									await this.plugin.saveSettings();
+
+									// Refresh settings tab
+									this.display();
+								}
+							});
+					})
+					.addExtraButton((button) => {
+						button
+							.setIcon("arrow-down")
+							.setTooltip("Move down")
+							.setDisabled(
+								index ===
+									this.plugin.settings.pinnedNotes.length - 1
+							) // Disable for the last item
+							.onClick(async () => {
+								if (
+									index <
+									this.plugin.settings.pinnedNotes.length - 1
+								) {
+									// Swap elements
+									[
+										this.plugin.settings.pinnedNotes[index],
+										this.plugin.settings.pinnedNotes[
+											index + 1
+										],
+									] = [
+										this.plugin.settings.pinnedNotes[
+											index + 1
+										],
+										this.plugin.settings.pinnedNotes[index],
+									];
+									await this.plugin.saveSettings();
+									// Refresh settings tab
+									this.display();
+								}
+							});
+					})
+					.addExtraButton((button) => {
+						button
+							.setIcon("trash")
+							.setTooltip("Unpin note")
+							// .setCta() // Make unpin button more prominent
+							.onClick(async () => {
+								this.plugin.settings.pinnedNotes.splice(
+									index,
+									1
+								);
+								await this.plugin.saveSettings();
+								this.display();
+							});
+					});
+
+				const controlEl = settingItem.createDiv({
+					cls: "setting-item-control",
+				});
+
+				const controlContainer = controlEl.createDiv({
 					cls: "pinbox-control-container",
 				});
 
-				setting.addTextArea((text: TextComponent) => {
+				// Use settingFactory to create a text area for custom format
+				// and move it out from the settingFactory to controlContainer.
+				settingFactory.addTextArea((text: TextComponent) => {
 					text.setValue(pinnedNote.customFormat);
-					text.inputEl.style.overflowY = "scroll"; // Ensure textarea is scrollable
+					text.inputEl.style.overflowY = "auto";
 					text.inputEl.style.minHeight = "6em";
-					text.inputEl.style.resize = "none";
+					text.inputEl.style.resize = "vertical";
 				});
 				controlContainer.appendChild(
-					setting.components[setting.components.length - 1].inputEl
+					settingFactory.components[
+						settingFactory.components.length - 1
+					].inputEl
 				);
 
 				const buttonContainer = controlContainer.createDiv({
 					cls: "pinbox-button-container",
 				});
 
-				setting.addButton((button) => {
+				settingFactory.addButton((button) => {
 					// Reset to global default format button
 					button
 						.setIcon("rotate-ccw") // Icon for reset
@@ -227,12 +316,13 @@ export class PinboxSettingTab extends PluginSettingTab {
 							this.display();
 						});
 				});
-
 				buttonContainer.appendChild(
-					setting.components[setting.components.length - 1].buttonEl
+					settingFactory.components[
+						settingFactory.components.length - 1
+					].buttonEl
 				);
 
-				setting.addButton((button) => {
+				settingFactory.addButton((button) => {
 					button
 						.setIcon("copy") // Icon for copy
 						.setTooltip("Copy format to clipboard")
@@ -245,26 +335,15 @@ export class PinboxSettingTab extends PluginSettingTab {
 				});
 
 				buttonContainer.appendChild(
-					setting.components[setting.components.length - 1].buttonEl
-				);
-
-				setting.addButton((button) => {
-					// Unpin button
-					button
-						.setIcon("trash")
-						.setTooltip("Unpin this note")
-						.setCta() // Make unpin button more prominent
-						.onClick(async () => {
-							this.plugin.settings.pinnedNotes.splice(index, 1);
-							await this.plugin.saveSettings();
-							this.display();
-						});
-				});
-
-				buttonContainer.appendChild(
-					setting.components[setting.components.length - 1].buttonEl
+					settingFactory.components[
+						settingFactory.components.length - 1
+					].buttonEl
 				);
 			});
+
+      // Remove the settingFactory components to remove it from the DOM.
+      settingFactory.settingEl.remove();
+
 		}
 
 		containerEl.createEl("hr");
@@ -318,6 +397,10 @@ export class PinboxSettingTab extends PluginSettingTab {
 			text: `
         div.setting-item-info {
           width: 100%;
+          flex-direction: column;
+          align-items: flex-start;
+          display: flex;
+          flex-wrap: wrap;
         }
         div.setting-item-control {
           width: 100%;
@@ -338,6 +421,20 @@ export class PinboxSettingTab extends PluginSettingTab {
 
         .pinbox-button-container > button {
           width: 100%;
+        }
+
+        /* Style for move buttons */
+        .setting-item-name {
+          flex-grow: 1;
+        }
+
+        .pinbox-move-buttons {
+          display: flex;
+        }
+
+        /* Avoid the margin before the move buttons */
+        .setting-item > *:first-child {
+          margin-inline-end: 0;
         }
 			`,
 		});
