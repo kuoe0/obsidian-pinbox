@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, TFile } from "obsidian";
 import PinboxPlugin from "./main";
 import { NoteSuggesterModal } from "./modals";
 
@@ -6,12 +6,14 @@ export interface PinboxSettings {
 	pinnedNotePaths: string[];
 	debugMode: boolean;
 	goToNoteAfterSave: boolean;
+	enableObsidianBookmark: boolean;
 }
 
 export const DEFAULT_SETTINGS: PinboxSettings = {
 	pinnedNotePaths: [],
 	debugMode: false,
 	goToNoteAfterSave: false,
+	enableObsidianBookmark: false,
 };
 
 export class PinboxSettingTab extends PluginSettingTab {
@@ -40,7 +42,7 @@ export class PinboxSettingTab extends PluginSettingTab {
 		const coffeeLink = `
             <a href="https://www.buymeacoffee.com/kuoe0" target="_blank">
               <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 108px !important;" >
-            </aㄜ
+            </a>
         `;
 		coffeeDiv.innerHTML = coffeeLink;
 
@@ -53,8 +55,15 @@ export class PinboxSettingTab extends PluginSettingTab {
 					.setTooltip("Pin a new note")
 					.setCta()
 					.onClick(() => {
-						new NoteSuggesterModal(this.app, this.plugin, () => {
-							this.display();
+						new NoteSuggesterModal(this.app, async (file: TFile) => {
+							if (this.plugin.settings.pinnedNotePaths.includes(file.path)) {
+								new Notice(`${file.basename} is already pinned.`);
+								return;
+							}
+							this.plugin.settings.pinnedNotePaths.push(file.path);
+							await this.plugin.saveSettings();
+							new Notice(`Pinned "${file.basename}"`);
+							this.display(); // Refresh settings tab
 						}).open();
 					});
 			});
@@ -90,6 +99,19 @@ export class PinboxSettingTab extends PluginSettingTab {
 		containerEl.createEl("hr");
 
 		containerEl.createEl("h3", { text: "General Settings" });
+
+		new Setting(containerEl)
+			.setName("Show bookmarked notes in share menu")
+			.setDesc("Adds your Obsidian bookmarked notes to the share menu for quick appending. Requires the 'Bookmarks' core plugin to be enabled.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.enableObsidianBookmark)
+					.onChange(async (value) => {
+						this.plugin.settings.enableObsidianBookmark = value;
+						await this.plugin.saveSettings();
+						this.display();
+					})
+			);
 
 		new Setting(containerEl)
 			.setName("Enable debug mode")
