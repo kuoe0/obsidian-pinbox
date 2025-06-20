@@ -11,10 +11,23 @@
 
 .pinbox-format-editor {
   min-height: 6em;
+  max-height: 400px; /* Prevent the editor from becoming excessively large */
   resize: vertical; /* Allow manual vertical resize if needed, but auto-resize will handle most cases */
-  overflow-y: hidden; /* Hide scrollbar to prevent flicker during auto-resize */
+  overflow-y: auto; /* Show scrollbar when content exceeds max-height */
   width: 100%; /* Ensure it takes full width */
   box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  padding: 10px; /* Add some space around the text for better readability */
+  border: 1px solid var(--background-modifier-border); /* Use a standard border */
+  border-radius: var(--radius-m); /* Use standard border-radius for consistency */
+  background-color: var(--background-secondary); /* Consistent background with other inputs */
+  font-family: var(--font-monospace); /* Use monospace font for better alignment of placeholders */
+  transition: height 0.1s ease-out; /* Smoothly animate height changes */
+}
+
+.pinbox-format-editor:focus {
+  border-color: var(--interactive-accent); /* Highlight border on focus */
+  outline: none; /* Remove default browser outline */
+  box-shadow: 0 0 0 1px var(--interactive-accent); /* Add a subtle glow for better focus visibility */
 }
 
 .pinbox-setting-item-control {
