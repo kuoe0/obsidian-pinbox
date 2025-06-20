@@ -69,16 +69,29 @@ export class FormatEditor { // Renamed from FormatEditor to avoid conflict if ne
 		getResetValue: () => string
 	) {
 		this.textArea = new TextAreaComponent(containerEl);
-		this.textArea.inputEl.classList.add("pinbox-format-editor");
-		this.textArea.inputEl.style.display = this.isPreviewing ? "none" : "block";
-		this.textArea.setValue(getCurrentValue())
-			.setPlaceholder(getResetValue())
-			.onChange(async (value) => {
-				await onValueChange(value);
-				if (this.previewEl && this.app && this.getPreviewData && this.plugin) {
-						this._renderPreview();
-				}
-			});
+		const inputEl = this.textArea.inputEl;
+		inputEl.classList.add("pinbox-format-editor");
+		inputEl.style.display = this.isPreviewing ? "none" : "block";
+		inputEl.style.overflowY = "hidden"; // Hide scrollbar
+		inputEl.style.resize = "vertical"; // Allow manual vertical resize if needed, but auto-resize will handle most cases
+
+		const resizeTextArea = () => {
+			inputEl.style.height = "auto"; // Reset height to auto to calculate new scrollHeight
+			inputEl.style.height = inputEl.scrollHeight + "px"; // Set height to scrollHeight
+		};
+
+		this.textArea.setValue(getCurrentValue());
+		this.textArea.setPlaceholder(getResetValue());
+
+		this.textArea.onChange(async (value) => {
+			await onValueChange(value);
+			if (this.previewEl && this.app && this.getPreviewData && this.plugin) {
+				this._renderPreview();
+			}
+			resizeTextArea(); // Resize on change
+		});
+		inputEl.addEventListener("input", resizeTextArea); // Resize on input (typing)
+		resizeTextArea(); // Initial resize
 	}
 
 	private createButtonContainer(containerEl: HTMLElement): HTMLElement {
