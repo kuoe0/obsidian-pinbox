@@ -11,8 +11,10 @@
 
 .pinbox-format-editor {
   min-height: 6em;
-  resize: vertical;
-  overflow-y: auto;
+  resize: vertical; /* Allow manual vertical resize if needed, but auto-resize will handle most cases */
+  overflow-y: hidden; /* Hide scrollbar to prevent flicker during auto-resize */
+  width: 100%; /* Ensure it takes full width */
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
 }
 
 .pinbox-setting-item-control {
@@ -21,20 +23,8 @@
 }
 
 .pinbox-control-container {
-  width: 100%;
-}
-
-.pinbox-control-container>textarea {
-  width: 100%;
-}
-
-.pinbox-button-container {
   display: flex;
-  justify-content: space-evenly;
-  gap: 10px;
-}
-
-.pinbox-button-container>button {
+  flex-direction: column;
   width: 100%;
 }
 
@@ -55,10 +45,17 @@
   overflow-y: auto;
 }
 
-.pinbox-control-container {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+/* Visibility toggle for editor and preview */
+.pinbox-control-container .pinbox-format-preview {
+  display: none;
+}
+
+.pinbox-control-container.is-previewing .pinbox-format-preview {
+  display: block;
+}
+
+.pinbox-control-container.is-previewing .pinbox-format-editor {
+  display: none;
 }
 
 .pinbox-button-container {
@@ -66,6 +63,13 @@
   justify-content: flex-end;
   gap: 5px;
   margin-top: 5px;
+  /* Consolidate button container styles */
+  justify-content: space-evenly; /* From original duplicate */
+  gap: 10px; /* From original duplicate */
+}
+
+.pinbox-button-container > button {
+  width: 100%; /* From original duplicate */
 }
 
 .pinbox-setting-item {
@@ -76,9 +80,4 @@
   flex-wrap: wrap;
   border-top: 1px solid var(--background-modifier-border);
   padding: 0.75em 0;
-}
-
-.pinbox-format-editor textarea {
-  width: 100%;
-  box-sizing: border-box;
 }
