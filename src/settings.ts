@@ -1,7 +1,7 @@
 import { App, Notice, PluginSettingTab, Setting, TFile } from "obsidian";
 import PinboxPlugin from "./main";
 import { NoteSuggesterModal } from "./modals";
-import { FormatEditor } from "./components/FormatEditor";
+import { FormatEditor, FormatEditorOptions } from "./components/FormatEditor";
 
 export interface PinnedNote {
   path: string;
@@ -35,32 +35,13 @@ export class PinboxSettingTab extends PluginSettingTab {
 
   private createFormatEditor(
     containerEl: HTMLElement,
-    getCurrentValue: () => string,
-    onValueChange: (newValue: string) => Promise<void>,
-    getResetValue: () => string,
-    onResetConfirmed: () => Promise<void>,
-    resetTooltipText: string, // Added
-    getPreviewData?: () => {
-      content: string;
-      note?: PinnedNote;
-      filePath?: string;
-    }, // Added
-    getCopyValue?: () => string
+    options: Omit<FormatEditorOptions, "app" | "plugin">
   ): void {
-    new FormatEditor(
-      containerEl,
-      getCurrentValue,
-      onValueChange,
-      getResetValue,
-      onResetConfirmed,
-      resetTooltipText,
-      getCopyValue,
-      // Pass the app instance from PinboxSettingTab
-      this.app,
-      getPreviewData,
-      // Pass the plugin instance from PinboxSettingTab
-      this.plugin
-    );
+    new FormatEditor(containerEl, {
+      ...options,
+      app: this.app,
+      plugin: this.plugin,
+    });
   }
 
   private async handleFormatChange(
@@ -91,15 +72,17 @@ export class PinboxSettingTab extends PluginSettingTab {
     });
 
     const coffeeDiv = containerEl.createDiv({ cls: "coffee-div" });
-    coffeeDiv.createEl("a", { attr: { href: "https://www.buymeacoffee.com/kuoe0", target: "_blank" } })
+    coffeeDiv
+      .createEl("a", {
+        attr: { href: "https://www.buymeacoffee.com/kuoe0", target: "_blank" },
+      })
       .createEl("img", {
-      attr: {
-        class: "coffee-button",
-        src: "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png",
-        alt: "Buy Me A Coffee",
-      },
-    });
-
+        attr: {
+          class: "coffee-button",
+          src: "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png",
+          alt: "Buy Me A Coffee",
+        },
+      });
 
     // Create the outer container for global format setting
     const globalFormatSettingItem = containerEl.createDiv({
@@ -110,7 +93,9 @@ export class PinboxSettingTab extends PluginSettingTab {
     const globalInfoEl = globalFormatSettingItem.createDiv({
       cls: "pinbox-setting-item-info",
     });
-    const globalNoteInfoEl = globalInfoEl.createDiv({ cls: "setting-item-note-info" });
+    const globalNoteInfoEl = globalInfoEl.createDiv({
+      cls: "setting-item-note-info",
+    });
     globalNoteInfoEl.createDiv({
       cls: "setting-item-name",
       text: "Global default format",
@@ -126,18 +111,17 @@ export class PinboxSettingTab extends PluginSettingTab {
     const globalControlContainer = globalControlEl.createDiv({
       cls: "pinbox-control-container",
     });
-    this.createFormatEditor(
-      globalControlContainer, // The container for the editor
-      () => this.plugin.settings.globalDefaultFormat,
-      /* onValueChange= */ async (value) => {
+    this.createFormatEditor(globalControlContainer, {
+      getCurrentValue: () => this.plugin.settings.globalDefaultFormat,
+      onValueChange: async (value) => {
         await this.handleFormatChange(
           (v) => (this.plugin.settings.globalDefaultFormat = v),
           value,
           false
         );
       },
-      () => DEFAULT_PINNED_NOTE_FORMAT,
-      /* onResetConfirmed= */ async () => {
+      getResetValue: () => DEFAULT_PINNED_NOTE_FORMAT,
+      onResetConfirmed: async () => {
         await this.handleFormatChange(
           (_) =>
             (this.plugin.settings.globalDefaultFormat =
@@ -146,11 +130,12 @@ export class PinboxSettingTab extends PluginSettingTab {
           true
         );
       },
-      "Reset to default format", // resetTooltipText
-      /* getPreviewData= */ () => ({ content: "Sample shared content" }),
-      // getCopyValue (or provide one if needed for global)
-      undefined,
-    );
+      resetTooltipText: "Reset to default format",
+      getPreviewData: () => ({
+        content: "Sample shared content",
+        filePath: "path/to/Sample Note.md",
+      }),
+    });
 
     new Setting(containerEl)
       .setName("Pin a new note")
@@ -229,10 +214,9 @@ export class PinboxSettingTab extends PluginSettingTab {
           cls: "pinbox-control-container",
         });
 
-        this.createFormatEditor(
-          pinnedNoteControlContainer, // The container for the editor
-          () => pinnedNote.customFormat,
-          /* onValueChange= */ async (value) => {
+        this.createFormatEditor(pinnedNoteControlContainer, {
+          getCurrentValue: () => pinnedNote.customFormat,
+          onValueChange: async (value) => {
             const currentPinnedNote = this.plugin.settings.pinnedNotes[index];
             if (currentPinnedNote) {
               await this.handleFormatChange(
@@ -242,8 +226,8 @@ export class PinboxSettingTab extends PluginSettingTab {
               );
             }
           },
-          () => this.plugin.settings.globalDefaultFormat,
-          async () => {
+          getResetValue: () => this.plugin.settings.globalDefaultFormat,
+          onResetConfirmed: async () => {
             const currentPinnedNote = this.plugin.settings.pinnedNotes[index];
             if (currentPinnedNote) {
               await this.handleFormatChange(
@@ -253,14 +237,14 @@ export class PinboxSettingTab extends PluginSettingTab {
               );
             }
           },
-          "Reset format to global default", // resetTooltipText
-          /* getPreviewData= */ () => ({
+          resetTooltipText: "Reset format to global default",
+          getPreviewData: () => ({
             content: "Sample content for this note",
             note: pinnedNote,
             filePath: pinnedNote.path,
           }),
-          () => pinnedNote.customFormat, // getCopyValue
-        );
+          getCopyValue: () => pinnedNote.customFormat,
+        });
       });
     }
 
