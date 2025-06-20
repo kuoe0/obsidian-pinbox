@@ -45,6 +45,17 @@ The Pinbox settings tab allows you to:
 6.  Click `Install` on the Pinbox plugin.
 7.  Once installed, click `Enable`.
 
+### Using BRAT (Beta Reviewer's Auto-update Tool)
+
+If you want to test beta versions of the plugin before they are officially released:
+
+1.  Install and enable the "Beta Reviewer's Auto-update Tool" (BRAT) community plugin in Obsidian.
+2.  Open BRAT settings.
+3.  Under "Add Beta Plugin", click "Add Beta Plugin".
+4.  Enter the GitHub repository URL for Pinbox: `kuoe0/obsidian-pinbox`.
+5.  Click "Add Plugin".
+6.  Once added, go to `Settings` > `Community plugins`, find "Pinbox" in the list, and enable it.
+
 ### Manual Installation
 
 1.  Download the latest release assets (`main.js`, `manifest.json`) from the Releases page of the Pinbox GitHub repository.
