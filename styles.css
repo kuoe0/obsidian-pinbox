@@ -1,8 +1,54 @@
-/*
+div.setting-item-info {
+  width: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+}
 
-This CSS file will be included with your plugin, and
-available in the app when your plugin is enabled.
+.pinbox-format-editor {
+  min-height: 6em;
+  resize: vertical;
+  overflow-y: auto;
+}
 
-If your plugin does not need CSS, delete this file.
+div.setting-item-control {
+  width: 100%;
+}
 
-*/
+div.pinbox-control-container {
+  width: 100%;
+}
+
+div.pinbox-control-container>textarea {
+  width: 100%;
+}
+
+div.pinbox-button-container {
+  display: flex;
+  justify-content: space-evenly;
+  gap: 10px;
+}
+
+.pinbox-button-container>button {
+  width: 100%;
+}
+
+/* Style for move buttons */
+.setting-item-name {
+  flex-grow: 1;
+}
+
+.pinbox-move-buttons {
+  display: flex;
+}
+
+/* Avoid the margin before the move buttons */
+.setting-item>*:first-child {
+  margin-inline-end: 0;
+}
+
+.coffee-button {
+  height: 30px !important;
+  width: 108px !important;
+}

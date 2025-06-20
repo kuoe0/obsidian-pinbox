@@ -6,15 +6,6 @@ import {
 	DEFAULT_PINNED_NOTE_FORMAT,
 } from "./settings";
 
-function isUrl(text: string): boolean {
-	try {
-		new URL(text);
-		return true;
-	} catch (_) {
-		return false;
-	}
-}
-
 // Interfaces for improved type safety when accessing the internal Bookmarks plugin
 interface ObsidianBookmarkItem {
 	type: 'file' | 'group' | 'search' | 'url' | string; // Allow other types

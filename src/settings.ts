@@ -52,14 +52,12 @@ export class PinboxSettingTab extends PluginSettingTab {
 		let textArea: TextComponent;
 		ownerSetting.addTextArea((text: TextComponent) => {
 			textArea = text;
+			text.inputEl.classList.add("pinbox-format-editor");
 			text.setValue(getCurrentValue())
 				.setPlaceholder(getResetValue()) // Use reset value as placeholder
 				.onChange(async (value) => {
 					await onValueChange(value);
 				});
-			text.inputEl.style.minHeight = "6em";
-			text.inputEl.style.resize = "vertical";
-			text.inputEl.style.overflowY = "auto";
 		});
 		targetControlContainer.appendChild(textArea!.inputEl);
 
@@ -110,15 +108,14 @@ export class PinboxSettingTab extends PluginSettingTab {
 			this.display();
 		}
 	}
+
 	display(): void {
 		const { containerEl } = this;
 		// Store the current scroll position
 		const scrollPosition = containerEl.scrollTop;
 
 		containerEl.empty();
-		this.addResponsiveCSS();
 
-		containerEl.createEl("h2", { text: "Pinbox Settings" });
 		containerEl.createEl("p", {
 			text: "Pinbox allows you to pin notes for quick access when sharing links or text on Android/iOS.",
 		});
@@ -132,21 +129,19 @@ export class PinboxSettingTab extends PluginSettingTab {
 			attr: {
 				href: "https://www.buymeacoffee.com/kuoe0",
 				target: "_blank",
-			}
+			},
 		});
 
 		coffeeLinkEl.createEl("img", {
 			attr: {
+				class: "coffee-button",
 				src: "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png",
 				alt: "Buy Me A Coffee",
-				style: "height: 30px !important;width: 108px !important;",
-			}
+			},
 		});
 
-		containerEl.createEl("h3", { text: "Global Settings" });
-
 		const globalSetting = new Setting(containerEl)
-			.setName("Global Default Note Format")
+			.setName("Global default format")
 			.setDesc(
 				"Set the default format for new pins and bookmarked notes.Placeholders: {{content}}, {{timestamp}} (YYYY-MM-DD HH:mm:ss), {{date}} (YYYY-MM-DD), {{time}} (HH:mm:ss)."
 			);
@@ -222,7 +217,7 @@ export class PinboxSettingTab extends PluginSettingTab {
 					});
 			});
 
-		containerEl.createEl("h3", { text: "Pinned Notes" });
+		new Setting(containerEl).setName("Pinned notes").setHeading();
 
 		if (this.plugin.settings.pinnedNotes.length === 0) {
 			containerEl.createEl("p", { text: "No notes are pinned yet." });
@@ -316,6 +311,20 @@ export class PinboxSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Go to note after saving")
+			.setDesc(
+				"Automatically open the note after successfully appending shared text."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.goToNoteAfterSave)
+					.onChange(async (value) => {
+						this.plugin.settings.goToNoteAfterSave = value;
+						await this.plugin.saveSettings();
+					})
+			);
+
+		new Setting(containerEl)
 			.setName("Enable debug mode")
 			.setDesc(
 				"Show extra notices for debugging, e.g., when saving shared text."
@@ -329,19 +338,6 @@ export class PinboxSettingTab extends PluginSettingTab {
 					})
 			);
 
-		new Setting(containerEl)
-			.setName("Go to note after saving")
-			.setDesc(
-				"Automatically open the note after successfully appending shared text."
-			)
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.goToNoteAfterSave)
-					.onChange(async (value) => {
-						this.plugin.settings.goToNoteAfterSave = value;
-						await this.plugin.saveSettings();
-					})
-			);
 
 		// Restore the scroll position after a short delay to allow the DOM to update
 		requestAnimationFrame(() => {
@@ -407,54 +403,5 @@ export class PinboxSettingTab extends PluginSettingTab {
 						this.display();
 					});
 			});
-	}
-
-	// Custom CSS for responsive design
-	addResponsiveCSS() {
-		this.containerEl.createEl("style", {
-			text: `
-        div.setting-item-info {
-          width: 100%;
-          flex-direction: column;
-          align-items: flex-start;
-          display: flex;
-          flex-wrap: wrap;
-        }
-        div.setting-item-control {
-          width: 100%;
-        }
-
-        div.pinbox-control-container {
-          width: 100%;
-        }
-        div.pinbox-control-container > textarea {
-          width: 100%;
-        }
-
-				div.pinbox-button-container {
-          display: flex;
-          justify-content: space-evenly;
-          gap: 10px;
-        }
-
-        .pinbox-button-container > button {
-          width: 100%;
-        }
-
-        /* Style for move buttons */
-        .setting-item-name {
-          flex-grow: 1;
-        }
-
-        .pinbox-move-buttons {
-          display: flex;
-        }
-
-        /* Avoid the margin before the move buttons */
-        .setting-item > *:first-child {
-          margin-inline-end: 0;
-        }
-			`,
-		});
 	}
 }
