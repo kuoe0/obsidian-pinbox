@@ -34,24 +34,32 @@ export class PinboxSettingTab extends PluginSettingTab {
   }
 
   private createFormatEditor(
-    ownerSetting: Setting,
-    targetControlContainer: HTMLElement,
+    containerEl: HTMLElement,
     getCurrentValue: () => string,
     onValueChange: (newValue: string) => Promise<void>,
     getResetValue: () => string,
     onResetConfirmed: () => Promise<void>,
-    resetTooltipText: string,
+    resetTooltipText: string, // Added
+    getPreviewData?: () => {
+      content: string;
+      note?: PinnedNote;
+      filePath?: string;
+    }, // Added
     getCopyValue?: () => string
   ): void {
     new FormatEditor(
-      ownerSetting,
-      targetControlContainer,
+      containerEl,
       getCurrentValue,
       onValueChange,
       getResetValue,
       onResetConfirmed,
       resetTooltipText,
-      getCopyValue
+      getCopyValue,
+      // Pass the app instance from PinboxSettingTab
+      this.app,
+      getPreviewData,
+      // Pass the plugin instance from PinboxSettingTab
+      this.plugin
     );
   }
 
@@ -83,14 +91,8 @@ export class PinboxSettingTab extends PluginSettingTab {
     });
 
     const coffeeDiv = containerEl.createDiv({ cls: "coffee-div" });
-    const coffeeLinkEl = coffeeDiv.createEl("a", {
-      attr: {
-        href: "https://www.buymeacoffee.com/kuoe0",
-        target: "_blank",
-      },
-    });
-
-    coffeeLinkEl.createEl("img", {
+    coffeeDiv.createEl("a", { attr: { href: "https://www.buymeacoffee.com/kuoe0", target: "_blank" } })
+      .createEl("img", {
       attr: {
         class: "coffee-button",
         src: "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png",
@@ -98,19 +100,34 @@ export class PinboxSettingTab extends PluginSettingTab {
       },
     });
 
-    const globalSetting = new Setting(containerEl)
-      .setName("Global default format")
-      .setDesc(
-        "Set the default format for new pins and bookmarked notes.Placeholders: {{content}}, {{timestamp}} (YYYY-MM-DD HH:mm:ss), {{date}} (YYYY-MM-DD), {{time}} (HH:mm:ss)."
-      );
 
-    const globalControlContainer = globalSetting.controlEl.createDiv({
-      cls: "pinbox-control-container",
+    // Create the outer container for global format setting
+    const globalFormatSettingItem = containerEl.createDiv({
+      cls: "pinbox-setting-item",
     });
 
+    // Info section (name and description)
+    const globalInfoEl = globalFormatSettingItem.createDiv({
+      cls: "pinbox-setting-item-info",
+    });
+    const globalNoteInfoEl = globalInfoEl.createDiv({ cls: "setting-item-note-info" });
+    globalNoteInfoEl.createDiv({
+      cls: "setting-item-name",
+      text: "Global default format",
+    });
+    globalNoteInfoEl.createDiv({
+      cls: "setting-item-description",
+      text: "Set the default format for new pins and bookmarked notes.Placeholders: {{content}}, {{timestamp}} (YYYY-MM-DD HH:mm:ss), {{date}} (YYYY-MM-DD), {{time}} (HH:mm:ss).",
+    });
+
+    const globalControlEl = globalFormatSettingItem.createDiv({
+      cls: "pinbox-setting-item-control",
+    });
+    const globalControlContainer = globalControlEl.createDiv({
+      cls: "pinbox-control-container",
+    });
     this.createFormatEditor(
-      globalSetting,
-      globalControlContainer,
+      globalControlContainer, // The container for the editor
       () => this.plugin.settings.globalDefaultFormat,
       /* onValueChange= */ async (value) => {
         await this.handleFormatChange(
@@ -119,7 +136,7 @@ export class PinboxSettingTab extends PluginSettingTab {
           false
         );
       },
-      () => DEFAULT_PINNED_NOTE_FORMAT, // getResetValue (also for placeholder)
+      () => DEFAULT_PINNED_NOTE_FORMAT,
       /* onResetConfirmed= */ async () => {
         await this.handleFormatChange(
           (_) =>
@@ -129,7 +146,10 @@ export class PinboxSettingTab extends PluginSettingTab {
           true
         );
       },
-      "Reset to default format"
+      "Reset to default format", // resetTooltipText
+      /* getPreviewData= */ () => ({ content: "Sample shared content" }),
+      // getCopyValue (or provide one if needed for global)
+      undefined,
     );
 
     new Setting(containerEl)
@@ -170,25 +190,26 @@ export class PinboxSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl).setName("Pinned notes").setHeading();
+    new Setting(containerEl).setName("📌 Pinned notes").setHeading();
 
     if (this.plugin.settings.pinnedNotes.length === 0) {
       containerEl.createEl("p", { text: "No notes are pinned yet." });
     } else {
-      const settingFactory = new Setting(containerEl); // Used as a factory for components
       this.plugin.settings.pinnedNotes.forEach((pinnedNote, index) => {
         const noteName =
           pinnedNote.path.split("/").pop()?.replace(".md", "") || "Note";
 
         const settingItem = containerEl.createDiv({
-          cls: "setting-item",
+          cls: "pinbox-setting-item",
         });
 
         const infoEl = settingItem.createDiv({
-          cls: "setting-item-info",
+          cls: "pinbox-setting-item-info",
         });
-        infoEl.createDiv({ cls: "setting-item-name", text: noteName });
-        infoEl.createDiv({
+
+        const noteInfoEl = infoEl.createDiv({ cls: "setting-item-note-info" });
+        noteInfoEl.createDiv({ cls: "setting-item-name", text: noteName });
+        noteInfoEl.createDiv({
           cls: "setting-item-description",
           text: `Path: ${pinnedNote.path}`,
         });
@@ -201,7 +222,7 @@ export class PinboxSettingTab extends PluginSettingTab {
         this.createPinnedNoteControls(moveButtons, index);
 
         const controlEl = settingItem.createDiv({
-          cls: "setting-item-control",
+          cls: "pinbox-setting-item-control",
         });
 
         const pinnedNoteControlContainer = controlEl.createDiv({
@@ -209,23 +230,20 @@ export class PinboxSettingTab extends PluginSettingTab {
         });
 
         this.createFormatEditor(
-          settingFactory,
-          pinnedNoteControlContainer,
+          pinnedNoteControlContainer, // The container for the editor
           () => pinnedNote.customFormat,
           /* onValueChange= */ async (value) => {
-            // Ensure we are updating the correct note in the array
             const currentPinnedNote = this.plugin.settings.pinnedNotes[index];
             if (currentPinnedNote) {
               await this.handleFormatChange(
                 (v) => (currentPinnedNote.customFormat = v),
                 value,
-                false // No full refresh, text area updates itself
+                false
               );
             }
           },
-          () => this.plugin.settings.globalDefaultFormat, // getResetValue (for placeholder)
+          () => this.plugin.settings.globalDefaultFormat,
           async () => {
-            // onResetConfirmed
             const currentPinnedNote = this.plugin.settings.pinnedNotes[index];
             if (currentPinnedNote) {
               await this.handleFormatChange(
@@ -235,13 +253,15 @@ export class PinboxSettingTab extends PluginSettingTab {
               );
             }
           },
-          "Reset format to global default",
-          () => pinnedNote.customFormat // getCopyValue
+          "Reset format to global default", // resetTooltipText
+          /* getPreviewData= */ () => ({
+            content: "Sample content for this note",
+            note: pinnedNote,
+            filePath: pinnedNote.path,
+          }),
+          () => pinnedNote.customFormat, // getCopyValue
         );
       });
-
-      // Remove the settingFactory's main element as it was only used for component creation
-      settingFactory.settingEl.remove();
     }
 
     containerEl.createEl("hr");

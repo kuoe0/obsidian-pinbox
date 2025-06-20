@@ -3,8 +3,8 @@ import {
 	PinboxSettingTab,
 	PinboxSettings,
 	DEFAULT_SETTINGS,
-	DEFAULT_PINNED_NOTE_FORMAT,
 } from "./settings";
+import { processPlaceholders } from "./utils";
 
 // Interfaces for improved type safety when accessing the internal Bookmarks plugin
 interface ObsidianBookmarkItem {
@@ -21,34 +21,13 @@ interface ObsidianBookmarksPluginInstance {
 export default class PinboxPlugin extends Plugin {
 	settings: PinboxSettings;
 
-	private processPlaceholders(format: string, content: string): string {
-		const now = new Date();
-		const date = `${now.getFullYear()}-${(now.getMonth() + 1)
-			.toString()
-			.padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")}`;
-		const time = `${now.getHours().toString().padStart(2, "0")}:${now
-			.getMinutes()
-			.toString()
-			.padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
-		const timestamp = `${date} ${time}`;
-
-		// Basic placeholder replacement
-		let processedText = format.replace(/{{content}}/g, content);
-		processedText = processedText.replace(/{{timestamp}}/g, timestamp);
-		processedText = processedText.replace(/{{date}}/g, date);
-		processedText = processedText.replace(/{{time}}/g, time);
-
-		// TODO: Add more advanced placeholder processing if needed (e.g., {{link}}, {{title}} from URL)
-		return processedText;
-	}
-
 	private async appendContentToNote(
 		notePath: string,
 		customFormat: string,
 		shareText: string,
 		noteNameForDisplay: string
 	) {
-		const formattedText = this.processPlaceholders(customFormat, shareText);
+		const formattedText = processPlaceholders(customFormat, shareText);
 
 		if (this.settings.debugMode) {
 			new Notice(
@@ -138,8 +117,7 @@ export default class PinboxPlugin extends Plugin {
 									.onClick(async () => {
 										await this.appendContentToNote(
 											pinnedNote.path,
-											pinnedNote.customFormat ||
-												DEFAULT_PINNED_NOTE_FORMAT,
+											pinnedNote.customFormat,
 											shareText,
 											noteName || "Pinned Note"
 										);
@@ -199,7 +177,6 @@ export default class PinboxPlugin extends Plugin {
 			settingsWereModified = true;
 		}
 
-		// Ensure all pinned notes have a customFormat (for migration from older versions)
 		if (this.settings.pinnedNotes) {
 			this.settings.pinnedNotes.forEach((pn) => {
 				if (typeof pn.customFormat === "undefined") {

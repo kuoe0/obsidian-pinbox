@@ -1,9 +1,12 @@
-div.setting-item-info {
+.pinbox-setting-item-info {
+  /* Info takes full width */
+  flex-basis: 100%;
   width: 100%;
-  flex-direction: column;
+  flex-direction: row;
   align-items: flex-start;
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
 
 .pinbox-format-editor {
@@ -12,19 +15,20 @@ div.setting-item-info {
   overflow-y: auto;
 }
 
-div.setting-item-control {
+.pinbox-setting-item-control {
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.pinbox-control-container {
   width: 100%;
 }
 
-div.pinbox-control-container {
+.pinbox-control-container>textarea {
   width: 100%;
 }
 
-div.pinbox-control-container>textarea {
-  width: 100%;
-}
-
-div.pinbox-button-container {
+.pinbox-button-container {
   display: flex;
   justify-content: space-evenly;
   gap: 10px;
@@ -34,21 +38,47 @@ div.pinbox-button-container {
   width: 100%;
 }
 
-/* Style for move buttons */
-.setting-item-name {
-  flex-grow: 1;
-}
-
-.pinbox-move-buttons {
-  display: flex;
-}
-
-/* Avoid the margin before the move buttons */
-.setting-item>*:first-child {
-  margin-inline-end: 0;
-}
-
 .coffee-button {
   height: 30px !important;
   width: 108px !important;
+  margin-bottom: 10px;
+}
+
+.pinbox-format-preview {
+  text-align: left;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background-color: var(--background-secondary);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.pinbox-control-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.pinbox-button-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-top: 5px;
+}
+
+.pinbox-setting-item {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--background-modifier-border);
+  padding: 0.75em 0;
+}
+
+.pinbox-format-editor textarea {
+  width: 100%;
+  box-sizing: border-box;
 }
