@@ -12,9 +12,10 @@ Pinbox is an Obsidian plugin designed to instantly capture content like text sni
 
 ## Screenshots
 
-![Screenshot 1](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-1.png?raw=true)
-![Screenshot 2](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-2.png?raw=true)
-![Screenshot 3](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-3.png?raw=true)
+| Screenshot 1 | Screenshot 2 | Screenshot 3 |
+| --- | --- | --- |
+| ![Screenshot 1](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-1.png?raw=true) | ![Screenshot 2](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-2.png?raw=true) | ![Screenshot 3](https://github.com/kuoe0/obsidian-pinbox/blob/master/assets/screenshot-3.png?raw=true) |
+
 
 ## Settings Overview
 

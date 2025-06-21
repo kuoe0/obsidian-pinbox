@@ -72,8 +72,8 @@ export default class PinboxPlugin extends Plugin {
 
           const bookmarkedFilePaths: string[] = [];
           if (this.settings.enableObsidianBookmark) {
-            // @ts-ignore
             const bookmarksPlugin =
+              // @ts-ignore private API
               this.app.internalPlugins?.plugins["bookmarks"];
             if (
               bookmarksPlugin &&
@@ -86,7 +86,7 @@ export default class PinboxPlugin extends Plugin {
                 bookmarksInstance.getBookmarks();
 
               for (const item of bookmarkedItems) {
-                if (item.type === "file") {
+                if (item.type === "file" && item.path) {
                   const file = this.app.vault.getAbstractFileByPath(item.path);
                   if (file instanceof TFile) {
                     bookmarkedFilePaths.push(file.path);
