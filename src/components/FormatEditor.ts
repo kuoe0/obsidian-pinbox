@@ -88,8 +88,10 @@ export class FormatEditor {
     inputEl.classList.add("pinbox-format-editor");
 
     const resizeTextArea = () => {
-      inputEl.style.height = "auto"; // Reset height to auto to calculate new scrollHeight
-      inputEl.style.height = inputEl.scrollHeight + "px"; // Set height to scrollHeight
+      // Reset height to auto to calculate new scrollHeight. This is necessary because scrollHeight might not decrease when content is removed if the height was previously set to a fixed pixel value.
+      inputEl.style.height = "auto";
+      // Set height to scrollHeight, making the textarea auto-grow/shrink. CSS transitions (defined in styles.css) will handle the smooth animation.
+      inputEl.style.height = inputEl.scrollHeight + "px";
     };
 
     this.textArea.setValue(getCurrentValue());
