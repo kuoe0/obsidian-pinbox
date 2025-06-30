@@ -36,6 +36,7 @@ export class FormatEditor {
 
   private isPreviewing = false;
   private containerEl: HTMLElement;
+
   constructor(containerEl: HTMLElement, options: FormatEditorOptions) {
     const {
       getCurrentValue,
@@ -44,9 +45,6 @@ export class FormatEditor {
       onResetConfirmed,
       resetTooltipText,
       getCopyValue,
-      app,
-      getPreviewData,
-      plugin,
     } = options;
     this.app = options.app;
     this.getPreviewData = options.getPreviewData;
@@ -87,13 +85,6 @@ export class FormatEditor {
     const inputEl = this.textArea.inputEl;
     inputEl.classList.add("pinbox-format-editor");
 
-    const resizeTextArea = () => {
-      // Reset height to auto to calculate new scrollHeight. This is necessary because scrollHeight might not decrease when content is removed if the height was previously set to a fixed pixel value.
-      inputEl.style.height = "auto";
-      // Set height to scrollHeight, making the textarea auto-grow/shrink. CSS transitions (defined in styles.css) will handle the smooth animation.
-      inputEl.style.height = inputEl.scrollHeight + "px";
-    };
-
     this.textArea.setValue(getCurrentValue());
     this.textArea.setPlaceholder(getResetValue());
 
@@ -102,10 +93,7 @@ export class FormatEditor {
       if (this.previewEl && this.app && this.getPreviewData && this.plugin) {
         this._renderPreview();
       }
-      resizeTextArea(); // Resize on change
     });
-    inputEl.addEventListener("input", resizeTextArea); // Resize on input (typing)
-    resizeTextArea(); // Initial resize
   }
 
   private createButtonContainer(containerEl: HTMLElement): HTMLElement {
