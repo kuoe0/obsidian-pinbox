@@ -50,7 +50,7 @@ export class FormatEditor {
     this.getPreviewData = options.getPreviewData;
     this.plugin = options.plugin;
     this.containerEl = containerEl;
-
+    this.containerEl.classList.add("pinbox-control-container");
     this.containerEl.classList.toggle("is-previewing", this.isPreviewing);
 
     // Create the preview element and add it to the controlContainer
@@ -153,7 +153,7 @@ export class FormatEditor {
 
     const formatString = this.textArea.getValue();
     const previewData = this.getPreviewData();
-    const sampleContent = previewData.content;
+    const sampleContent = previewData.content || '';
 
     const processedText = processPlaceholders(formatString, sampleContent);
 
