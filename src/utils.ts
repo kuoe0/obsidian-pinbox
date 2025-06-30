@@ -4,7 +4,9 @@
  * @param content The content to replace the {{content}} placeholder.
  * @returns The processed string with placeholders replaced.
  */
-export function processPlaceholders(format: string, content: string): string {
+export function processPlaceholders(format?: string, content?: string): string {
+  format = format ?? '';
+  content = content ?? '';
   const now = new Date();
   const date = `${now.getFullYear()}-${(now.getMonth() + 1)
     .toString()
