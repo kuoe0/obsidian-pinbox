@@ -27,11 +27,14 @@ export class NoteSuggesterModal extends FuzzySuggestModal<TFile> {
     return item.path;
   }
 
-  async onChooseItem(item: TFile): Promise<void> {
+  onChooseItem(item: TFile): void {
     const newPinnedNote: PinnedNote = {
       path: item.path,
       customFormat: this.currentGlobalFormat, // Use the passed global default format
     };
-    await this.onChooseFileCallback(item, newPinnedNote);
+    // Base class expects void, so we handle the promise here
+    this.onChooseFileCallback(item, newPinnedNote).catch((err) => {
+        console.error("Pinbox: Error choosing file", err);
+    });
   }
 }
