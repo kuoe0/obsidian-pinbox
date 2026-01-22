@@ -183,7 +183,7 @@ export class PinboxSettingTab extends PluginSettingTab {
           });
       });
 
-    new Setting(containerEl).setName("📌 Pinned notes").setHeading();
+    new Setting(containerEl).setName("Pinned notes").setHeading();
 
     if (this.plugin.settings.pinnedNotes.length === 0) {
       containerEl.createEl("p", { text: "No notes are pinned yet." });
@@ -261,7 +261,7 @@ export class PinboxSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Show bookmarked notes in share menu")
       .setDesc(
-        "Adds your Obsidian bookmarked notes to the share menu for quick appending. Requires the 'Bookmarks' core plugin to be enabled."
+        "Adds your Obsidian bookmarked notes to the share menu for quick appending. Requires the 'Bookmarks' core plugin."
       )
       .addToggle((toggle) =>
         toggle

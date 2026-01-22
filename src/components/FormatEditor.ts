@@ -72,7 +72,7 @@ export class FormatEditor {
     // Initial render of preview content.
     // this.previewEl is now guaranteed to be defined.
     if (this.app && this.getPreviewData && this.component) {
-      this._renderPreview();
+      void this._renderPreview();
     }
   }
 
