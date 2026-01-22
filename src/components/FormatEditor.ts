@@ -4,6 +4,7 @@ import {
   MarkdownRenderer,
   App,
   ButtonComponent,
+  Component,
 } from "obsidian";
 import { PinnedNote } from "src/settings";
 import PinboxPlugin from "src/main"; // Import PinboxPlugin for type
@@ -22,7 +23,7 @@ export interface FormatEditorOptions {
     note?: PinnedNote;
     filePath?: string;
   };
-  plugin: PinboxPlugin;
+  component: Component;
 }
 export class FormatEditor {
   // Renamed from FormatEditor to avoid conflict if needed, but keeping for now
@@ -32,7 +33,7 @@ export class FormatEditor {
   private getPreviewData:
     | (() => { content: string; note?: PinnedNote; filePath?: string })
     | undefined;
-  private plugin: PinboxPlugin | undefined;
+  private component: Component;
 
   private isPreviewing = false;
   private containerEl: HTMLElement;
@@ -48,7 +49,7 @@ export class FormatEditor {
     } = options;
     this.app = options.app;
     this.getPreviewData = options.getPreviewData;
-    this.plugin = options.plugin;
+    this.component = options.component;
     this.containerEl = containerEl;
     this.containerEl.classList.add("pinbox-control-container");
     this.containerEl.classList.toggle("is-previewing", this.isPreviewing);
@@ -70,7 +71,7 @@ export class FormatEditor {
 
     // Initial render of preview content.
     // this.previewEl is now guaranteed to be defined.
-    if (this.app && this.getPreviewData && this.plugin) {
+    if (this.app && this.getPreviewData && this.component) {
       this._renderPreview();
     }
   }
@@ -90,8 +91,8 @@ export class FormatEditor {
 
     this.textArea.onChange(async (value) => {
       await onValueChange(value);
-      if (this.previewEl && this.app && this.getPreviewData && this.plugin) {
-        this._renderPreview();
+      if (this.previewEl && this.app && this.getPreviewData && this.component) {
+        await this._renderPreview();
       }
     });
   }
@@ -110,8 +111,8 @@ export class FormatEditor {
       .setTooltip(resetTooltipText)
       .onClick(async () => {
         await onResetConfirmed();
-        if (this.previewEl && this.app && this.getPreviewData && this.plugin) {
-          this._renderPreview(); // Re-render after reset
+        if (this.previewEl && this.app && this.getPreviewData && this.component) {
+          await this._renderPreview(); // Re-render after reset
         }
       });
   }
@@ -141,13 +142,13 @@ export class FormatEditor {
         button.setTooltip(this.isPreviewing ? "Edit format" : "Show preview");
         this.containerEl.classList.toggle("is-previewing", this.isPreviewing);
         if (this.isPreviewing) {
-          this._renderPreview();
+          await this._renderPreview();
         }
       });
   }
 
   private async _renderPreview(): Promise<void> {
-    if (!this.previewEl || !this.app || !this.getPreviewData || !this.plugin) {
+    if (!this.previewEl || !this.app || !this.getPreviewData || !this.component) {
       return;
     }
 
@@ -164,7 +165,7 @@ export class FormatEditor {
       processedText,
       this.previewEl,
       "",
-      this.plugin
+      this.component
     );
   }
 }

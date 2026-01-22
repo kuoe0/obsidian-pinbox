@@ -1,4 +1,4 @@
-import { App, Notice, PluginSettingTab, Setting, TFile } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, TFile, Component } from "obsidian";
 import PinboxPlugin from "./main";
 import { NoteSuggesterModal } from "./modals";
 import { FormatEditor, FormatEditorOptions } from "./components/FormatEditor";
@@ -27,6 +27,7 @@ export const DEFAULT_SETTINGS: PinboxSettings = {
 
 export class PinboxSettingTab extends PluginSettingTab {
   plugin: PinboxPlugin;
+  component: Component;
 
   constructor(app: App, plugin: PinboxPlugin) {
     super(app, plugin);
@@ -35,12 +36,12 @@ export class PinboxSettingTab extends PluginSettingTab {
 
   private createFormatEditor(
     containerEl: HTMLElement,
-    options: Omit<FormatEditorOptions, "app" | "plugin">
+    options: Omit<FormatEditorOptions, "app" | "plugin" | "component">
   ): void {
     new FormatEditor(containerEl, {
       ...options,
       app: this.app,
-      plugin: this.plugin,
+      component: this.component,
     });
   }
 
@@ -56,12 +57,19 @@ export class PinboxSettingTab extends PluginSettingTab {
     }
   }
 
+  hide() {
+    super.hide();
+    if (this.component) this.component.unload();
+  }
+
   display(): void {
     const { containerEl } = this;
     // Store the current scroll position
     const scrollPosition = containerEl.scrollTop;
 
     containerEl.empty();
+    
+    this.component = new Component();
 
     containerEl.createEl("p", {
       text: "Pinbox allows you to pin notes for quick access when sharing links or text on Android/iOS.",
@@ -80,7 +88,7 @@ export class PinboxSettingTab extends PluginSettingTab {
         attr: {
           class: "coffee-button",
           src: "https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png",
-          alt: "Buy Me A Coffee",
+          alt: "Buy me a coffee",
         },
       });
 
@@ -102,7 +110,7 @@ export class PinboxSettingTab extends PluginSettingTab {
     });
     globalNoteInfoEl.createDiv({
       cls: "setting-item-description",
-      text: "Set the default format for new pins and bookmarked notes.Placeholders: {{content}}, {{timestamp}} (YYYY-MM-DD HH:mm:ss), {{date}} (YYYY-MM-DD), {{time}} (HH:mm:ss).",
+      text: "Set the default format for new pins and bookmarked notes. Placeholders: {{content}}, {{timestamp}} (YYYY-MM-DD HH:mm:ss), {{date}} (YYYY-MM-DD), {{time}} (HH:mm:ss).",
     });
 
     const globalControlEl = globalFormatSettingItem.createDiv({

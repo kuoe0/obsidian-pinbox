@@ -4,7 +4,7 @@ import { processPlaceholders } from "./utils";
 
 // Interfaces for improved type safety when accessing the internal Bookmarks plugin
 interface ObsidianBookmarkItem {
-  type: "file" | "group" | "search" | "url" | string; // Allow other types
+  type: string; // "file" | "group" | "search" | "url" | string - simplified to string to avoid lint error
   path?: string; // for type: 'file'
   title?: string;
   // other properties that might exist
@@ -115,7 +115,7 @@ export default class PinboxPlugin extends Plugin {
                       pinnedNote.path,
                       pinnedNote.customFormat,
                       shareText,
-                      noteName || "Pinned Note"
+                      noteName || "Pinned note"
                     );
                   });
               });
@@ -138,7 +138,7 @@ export default class PinboxPlugin extends Plugin {
                       notePath,
                       this.settings.globalDefaultFormat,
                       shareText,
-                      noteName || "Bookmarked Note"
+                      noteName || "Bookmarked note"
                     );
                   });
               });
