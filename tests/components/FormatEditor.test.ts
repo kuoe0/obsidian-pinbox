@@ -106,7 +106,7 @@ describe('FormatEditor', () => {
         note: { path: 'test.md', customFormat: 'Test format' } as PinnedNote,
         filePath: 'test.md',
       }),
-      plugin: {} as any,
+      component: {} as any,
     };
   });
 
