@@ -7,7 +7,7 @@ import {
   Component,
 } from "obsidian";
 import { PinnedNote } from "src/settings";
-import PinboxPlugin from "src/main"; // Import PinboxPlugin for type
+
 import { processPlaceholders } from "src/utils";
 
 export interface FormatEditorOptions {
