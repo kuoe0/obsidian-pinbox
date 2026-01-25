@@ -261,7 +261,7 @@ export class PinboxSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Show bookmarked notes in share menu")
       .setDesc(
-        "Adds bookmarked notes to the share menu for quick appending. Requires the Bookmarks core plugin."
+        "Adds bookmarked notes to the share menu for quick appending (requires the Bookmarks core plugin)."
       )
       .addToggle((toggle) =>
         toggle
