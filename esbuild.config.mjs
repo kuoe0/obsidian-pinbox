@@ -1,7 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import { builtinModules as builtins } from "module";
-
+import fs from "fs";
 
 const banner =
 `/*
@@ -11,6 +11,14 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+
+if (!fs.existsSync("build")) {
+	fs.mkdirSync("build");
+}
+fs.copyFileSync("manifest.json", "build/manifest.json");
+if (fs.existsSync("styles.css")) {
+	fs.copyFileSync("styles.css", "build/styles.css");
+}
 
 const context = await esbuild.context({
 	banner: {
@@ -38,7 +46,7 @@ const context = await esbuild.context({
 	logLevel: "info",
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
-	outfile: "main.js",
+	outfile: "build/main.js",
 	minify: prod,
 });
 
