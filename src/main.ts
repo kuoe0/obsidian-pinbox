@@ -14,6 +14,17 @@ interface ObsidianBookmarksPluginInstance {
   getBookmarks: () => ObsidianBookmarkItem[];
 }
 
+interface ObsidianInternalPlugin {
+  enabled: boolean;
+  instance: ObsidianBookmarksPluginInstance;
+}
+
+interface ObsidianInternalPlugins {
+  plugins: {
+    [id: string]: ObsidianInternalPlugin;
+  };
+}
+
 export default class PinboxPlugin extends Plugin {
   settings: PinboxSettings;
 
@@ -72,16 +83,14 @@ export default class PinboxPlugin extends Plugin {
 
           const bookmarkedFilePaths: string[] = [];
           if (this.settings.enableObsidianBookmark) {
-            const bookmarksPlugin =
-              // @ts-ignore private API
-              this.app.internalPlugins?.plugins["bookmarks"];
+            const internalPlugins = (this.app as any).internalPlugins as ObsidianInternalPlugins | undefined;
+            const bookmarksPlugin = internalPlugins?.plugins["bookmarks"];
             if (
               bookmarksPlugin &&
               bookmarksPlugin.enabled &&
               bookmarksPlugin.instance
             ) {
-              const bookmarksInstance =
-                bookmarksPlugin.instance as ObsidianBookmarksPluginInstance;
+              const bookmarksInstance = bookmarksPlugin.instance;
               const bookmarkedItems: ObsidianBookmarkItem[] =
                 bookmarksInstance.getBookmarks();
 
@@ -149,14 +158,14 @@ export default class PinboxPlugin extends Plugin {
     );
 
     this.registerEvent(
-      this.app.vault.on("rename", this.handleFileRename.bind(this))
+      this.app.vault.on("rename", (file, oldPath) => this.handleFileRename(file, oldPath))
     );
   }
 
   onunload() {}
 
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, (await this.loadData()) as Partial<PinboxSettings>);
 
     let settingsWereModified = false;
 
