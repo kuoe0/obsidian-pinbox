@@ -2,6 +2,7 @@ import { App, Notice, PluginSettingTab, Setting, TFile, Component } from "obsidi
 import PinboxPlugin from "./main";
 import { NoteSuggesterModal } from "./modals";
 import { FormatEditor, FormatEditorOptions } from "./components/FormatEditor";
+import { processPlaceholders } from "./utils";
 
 export interface PinnedNote {
   path: string;
@@ -183,15 +184,63 @@ export class PinboxSettingTab extends PluginSettingTab {
           });
       });
 
+    new Setting(containerEl)
+      .setName("Pin Today's Daily Note")
+      .setDesc("Add today's Daily Note to your quick-share list. This path resolves dynamically.")
+      .addButton((button) => {
+        button
+          .setIcon("calendar")
+          .setTooltip("Pin Daily Note")
+          .onClick(async () => {
+            if (this.plugin.settings.pinnedNotes.some((pn) => pn.path === "{{daily}}")) {
+              new Notice("Today's Daily Note is already pinned.");
+              return;
+            }
+            this.plugin.settings.pinnedNotes.push({
+              path: "{{daily}}",
+              customFormat: this.plugin.settings.globalDefaultFormat,
+            });
+            await this.plugin.saveSettings();
+            new Notice("Pinned Today's Daily Note");
+            this.display();
+          });
+      });
+
     new Setting(containerEl).setName("Pinned notes").setHeading();
 
     if (this.plugin.settings.pinnedNotes.length === 0) {
       containerEl.createEl("p", { text: "No notes are pinned yet." });
     } else {
       this.plugin.settings.pinnedNotes.forEach((pinnedNote, index) => {
-        const noteName =
-          pinnedNote.path.split("/").pop()?.replace(".md", "") || "Note";
-        const fileExists = this.app.vault.getAbstractFileByPath(pinnedNote.path) instanceof TFile;
+        const isDynamic = pinnedNote.path.includes("{{");
+        let fileExists = false;
+        let resolvedPathForDisplay = pinnedNote.path;
+        let statusText = "";
+        let displayName = pinnedNote.path.split("/").pop()?.replace(".md", "") || "Note";
+
+        if (isDynamic) {
+          if (pinnedNote.path === "{{daily}}") {
+            displayName = "Today's Daily Note";
+            const dailyPath = this.plugin.getDailyNotePath();
+            if (dailyPath) {
+              resolvedPathForDisplay = `Daily Note (${dailyPath})`;
+              fileExists = this.app.vault.getAbstractFileByPath(dailyPath) instanceof TFile;
+              statusText = fileExists ? "" : " (will be created with template on share)";
+            } else {
+              resolvedPathForDisplay = `Daily Note (Daily Notes plugin not configured)`;
+              fileExists = false;
+              statusText = " (disabled)";
+            }
+          } else {
+            const resolved = processPlaceholders(pinnedNote.path);
+            resolvedPathForDisplay = `${pinnedNote.path} (${resolved})`;
+            fileExists = this.app.vault.getAbstractFileByPath(resolved) instanceof TFile;
+            statusText = fileExists ? "" : " (will be created on share)";
+          }
+        } else {
+          fileExists = this.app.vault.getAbstractFileByPath(pinnedNote.path) instanceof TFile;
+          statusText = fileExists ? "" : " (File not found)";
+        }
 
         const settingItem = containerEl.createDiv({
           cls: "pinbox-setting-item",
@@ -202,13 +251,13 @@ export class PinboxSettingTab extends PluginSettingTab {
         });
 
         const noteInfoEl = infoEl.createDiv({ cls: "setting-item-note-info" });
-        const nameEl = noteInfoEl.createDiv({ cls: "setting-item-name", text: fileExists ? noteName : `${noteName} (Missing)` });
-        if (!fileExists) {
+        const nameEl = noteInfoEl.createDiv({ cls: "setting-item-name", text: (fileExists || isDynamic) ? displayName : `${displayName} (Missing)` });
+        if (!fileExists && !isDynamic) {
           nameEl.addClass("pinbox-warning-text");
         }
         noteInfoEl.createDiv({
           cls: "setting-item-description",
-          text: fileExists ? `Path: ${pinnedNote.path}` : `Path: ${pinnedNote.path} (File not found)`,
+          text: `Path: ${resolvedPathForDisplay}${statusText}`,
         });
 
         // Add move buttons below the name/path

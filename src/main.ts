@@ -1,4 +1,4 @@
-import { Plugin, TAbstractFile, TFile, Notice, Menu } from "obsidian";
+import { Plugin, TAbstractFile, TFile, Notice, Menu, moment } from "obsidian";
 import { PinboxSettingTab, PinboxSettings, DEFAULT_SETTINGS } from "./settings";
 import { processPlaceholders } from "./utils";
 
@@ -112,26 +112,64 @@ export default class PinboxPlugin extends Plugin {
             menu.addSeparator();
             this.settings.pinnedNotes.forEach((pinnedNote) => {
               menu.addItem((item) => {
-                const noteName = pinnedNote.path
-                  .split("/")
-                  .pop()
-                  ?.replace(".md", "");
-                const fileExists = this.app.vault.getAbstractFileByPath(pinnedNote.path) instanceof TFile;
-                const title = fileExists ? `Append to ${noteName}` : `Append to ${noteName} (Missing)`;
+                const isDynamic = pinnedNote.path.includes("{{");
+                let resolvedPath = pinnedNote.path;
+                let noteName = "";
+
+                if (pinnedNote.path === "{{daily}}") {
+                  noteName = "Today's Daily Note";
+                  const dailyPath = this.getDailyNotePath();
+                  resolvedPath = dailyPath || "";
+                } else {
+                  noteName = pinnedNote.path.split("/").pop()?.replace(".md", "") || "Pinned note";
+                  resolvedPath = processPlaceholders(pinnedNote.path);
+                }
+
+                const fileExists = resolvedPath ? (this.app.vault.getAbstractFileByPath(resolvedPath) instanceof TFile) : false;
+                const title = (fileExists || isDynamic) ? `Append to ${noteName}` : `Append to ${noteName} (Missing)`;
+                
+                let icon = "pin";
+                if (pinnedNote.path === "{{daily}}") {
+                  icon = "calendar";
+                } else if (!fileExists && !isDynamic) {
+                  icon = "alert-triangle";
+                }
+
                 item
                   .setTitle(title)
-                  .setIcon(fileExists ? "pin" : "alert-triangle")
+                  .setIcon(icon)
                   .onClick(async () => {
-                    if (!fileExists) {
+                    if (!resolvedPath) {
+                      new Notice("Error: Resolved path is empty or invalid.");
+                      return;
+                    }
+
+                    if (!fileExists && !isDynamic) {
                       new Notice(`Error: Note "${noteName}" not found at path: ${pinnedNote.path}`);
                       return;
                     }
-                    await this.appendContentToNote(
-                      pinnedNote.path,
-                      pinnedNote.customFormat,
-                      shareText,
-                      noteName || "Pinned note"
-                    );
+
+                    // Ensure the file exists for dynamic paths
+                    let file = this.app.vault.getAbstractFileByPath(resolvedPath);
+                    if (!(file instanceof TFile)) {
+                      if (pinnedNote.path === "{{daily}}" || resolvedPath === this.getDailyNotePath()) {
+                        file = await this.createDailyNoteWithTemplate();
+                      }
+                      if (!(file instanceof TFile)) {
+                        file = await this.createFileRecursively(resolvedPath);
+                      }
+                    }
+
+                    if (file instanceof TFile) {
+                      await this.appendContentToNote(
+                        file.path,
+                        pinnedNote.customFormat,
+                        shareText,
+                        noteName
+                      );
+                    } else {
+                      new Notice(`Error: Failed to create or open note at: ${resolvedPath}`);
+                    }
                   });
               });
             });
@@ -281,5 +319,81 @@ export default class PinboxPlugin extends Plugin {
     this.settings.pinnedNotes.splice(index, 1);
     await this.saveSettings();
     new Notice(`Unpinned "${file.basename}"`);
+  }
+
+  public getDailyNotePath(): string | null {
+    // 1. Check Periodic Notes first
+    const periodicNotes = (this.app as any).plugins?.plugins["periodic-notes"];
+    if (periodicNotes && periodicNotes.settings?.daily?.enabled) {
+      const dailyConfig = periodicNotes.settings.daily;
+      const folder = dailyConfig.folder ? dailyConfig.folder.trim() : "";
+      const format = dailyConfig.format || "YYYY-MM-DD";
+      const fileName = moment().format(format) + ".md";
+      return folder ? `${folder}/${fileName}` : fileName;
+    }
+
+    // 2. Check Core Daily Notes plugin
+    const dailyNotes = (this.app as any).internalPlugins?.plugins["daily-notes"];
+    if (dailyNotes && dailyNotes.enabled) {
+      const dailyConfig = dailyNotes.instance?.options;
+      if (dailyConfig) {
+        const folder = dailyConfig.folder ? dailyConfig.folder.trim() : "";
+        const format = dailyConfig.format || "YYYY-MM-DD";
+        const fileName = moment().format(format) + ".md";
+        return folder ? `${folder}/${fileName}` : fileName;
+      }
+    }
+
+    return null;
+  }
+
+  private async createDailyNoteWithTemplate(): Promise<TFile | null> {
+    // 1. Try Core Daily Notes creation
+    const dailyNotes = (this.app as any).internalPlugins?.plugins["daily-notes"];
+    if (dailyNotes && dailyNotes.enabled && dailyNotes.instance?.createDailyNote) {
+      try {
+        const file = await dailyNotes.instance.createDailyNote(moment());
+        if (file instanceof TFile) return file;
+      } catch (err) {
+        console.error("Pinbox failed to create daily note via core Daily Notes plugin:", err);
+      }
+    }
+
+    // 2. Try Periodic Notes daily note creation
+    const periodicNotes = (this.app as any).plugins?.plugins["periodic-notes"];
+    if (periodicNotes && periodicNotes.settings?.daily?.enabled) {
+      try {
+        if (typeof periodicNotes.createDailyNote === "function") {
+          const file = await periodicNotes.createDailyNote(moment());
+          if (file instanceof TFile) return file;
+        }
+      } catch (err) {
+        console.error("Pinbox failed to create daily note via Periodic Notes:", err);
+      }
+    }
+
+    return null;
+  }
+
+  private async createFileRecursively(path: string): Promise<TFile | null> {
+    try {
+      const parentPath = path.substring(0, path.lastIndexOf("/"));
+      if (parentPath) {
+        const parts = parentPath.split("/");
+        let currentPath = "";
+        for (const part of parts) {
+          if (!part) continue;
+          currentPath = currentPath ? `${currentPath}/${part}` : part;
+          if (!(this.app.vault.getAbstractFileByPath(currentPath))) {
+            await this.app.vault.createFolder(currentPath);
+          }
+        }
+      }
+      
+      return await this.app.vault.create(path, "");
+    } catch (err) {
+      console.error(`Pinbox: failed to create file recursively at ${path}:`, err);
+      return null;
+    }
   }
 }
