@@ -204,4 +204,27 @@ describe('processPlaceholders', () => {
       expect(result).toBe('2023-12-31 23:59:59');
     });
   });
+
+  describe('custom moment formatting placeholders', () => {
+    it('should replace custom {{date:FORMAT}} placeholders', () => {
+      jest.setSystemTime(new Date('2023-12-25T10:30:45.123Z'));
+      const format = '{{date:YYYY/MM/DD dddd}}';
+      const result = processPlaceholders(format, 'Test');
+      expect(result).toBe('2023/12/25 Monday');
+    });
+
+    it('should replace custom {{time:FORMAT}} placeholders', () => {
+      jest.setSystemTime(new Date('2023-12-25T10:30:45.123Z'));
+      const format = '{{time:HH-mm}}';
+      const result = processPlaceholders(format, 'Test');
+      expect(result).toBe('10-30');
+    });
+
+    it('should replace custom {{timestamp:FORMAT}} placeholders', () => {
+      jest.setSystemTime(new Date('2023-12-25T10:30:45.123Z'));
+      const format = '{{timestamp:dddd, MMMM Do YYYY, h:mm:ss a}}';
+      const result = processPlaceholders(format, 'Test');
+      expect(result).toBe('Monday, December 25th 2023, 10:30:45 am');
+    });
+  });
 }); 

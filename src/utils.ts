@@ -1,3 +1,5 @@
+import { moment } from "obsidian";
+
 /**
  * Processes a format string by replacing placeholders with actual content and date/time values.
  * @param format The format string containing placeholders like {{content}}, {{timestamp}}, {{date}}, {{time}}.
@@ -7,19 +9,22 @@
 export function processPlaceholders(format?: string, content?: string): string {
   format = format ?? '';
   content = content ?? '';
-  const now = new Date();
-  const date = `${now.getFullYear()}-${(now.getMonth() + 1)
-    .toString()
-    .padStart(2, "0")}-${now.getDate().toString().padStart(2, "0")}`;
-  const time = `${now.getHours().toString().padStart(2, "0")}:${now
-    .getMinutes()
-    .toString()
-    .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
-  const timestamp = `${date} ${time}`;
+  const now = moment();
 
-  return format
+  const dateDefault = now.format("YYYY-MM-DD");
+  const timeDefault = now.format("HH:mm:ss");
+  const timestampDefault = now.format("YYYY-MM-DD HH:mm:ss");
+
+  let result = format
     .replace(/{{content}}/g, content)
-    .replace(/{{timestamp}}/g, timestamp)
-    .replace(/{{date}}/g, date)
-    .replace(/{{time}}/g, time);
+    .replace(/{{timestamp}}/g, timestampDefault)
+    .replace(/{{date}}/g, dateDefault)
+    .replace(/{{time}}/g, timeDefault);
+
+  // Dynamic Moment formatting: {{date:FORMAT}}, {{time:FORMAT}}, {{timestamp:FORMAT}}
+  result = result.replace(/{{date:(.*?)}}/g, (_, fmt) => now.format(fmt));
+  result = result.replace(/{{time:(.*?)}}/g, (_, fmt) => now.format(fmt));
+  result = result.replace(/{{timestamp:(.*?)}}/g, (_, fmt) => now.format(fmt));
+
+  return result;
 }

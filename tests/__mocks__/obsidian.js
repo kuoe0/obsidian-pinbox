@@ -41,6 +41,8 @@ class MockFuzzySuggestModal {
   }
 }
 
+const moment = require('moment');
+
 module.exports = {
   TextAreaComponent: function() { return mockTextAreaComponent; },
   ButtonComponent: function() { return mockButtonComponent; },
@@ -61,4 +63,5 @@ module.exports = {
     setHeading() { return this; } 
   },
   Menu: class {},
+  moment,
 }; 

@@ -65,6 +65,7 @@ jest.mock('obsidian', () => {
   const mockMarkdownRenderer = {
     render: jest.fn().mockResolvedValue(undefined),
   };
+  const moment = require('moment');
 
   return {
     TextAreaComponent: jest.fn(TextAreaComponentMock),
@@ -72,6 +73,7 @@ jest.mock('obsidian', () => {
     MarkdownRenderer: mockMarkdownRenderer,
     Notice: jest.fn(),
     App: jest.fn(),
+    moment,
   };
 });
 
