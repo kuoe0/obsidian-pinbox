@@ -12,9 +12,11 @@ if you want to view the source, please visit the github repository of this plugi
 
 const prod = (process.argv[2] === "production");
 
-if (!fs.existsSync("build")) {
-	fs.mkdirSync("build");
+if (fs.existsSync("build")) {
+	fs.rmSync("build", { recursive: true, force: true });
 }
+fs.mkdirSync("build");
+
 fs.copyFileSync("manifest.json", "build/manifest.json");
 if (fs.existsSync("styles.css")) {
 	fs.copyFileSync("styles.css", "build/styles.css");
@@ -55,4 +57,22 @@ if (prod) {
 	process.exit(0);
 } else {
 	await context.watch();
+	fs.watch("manifest.json", () => {
+		try {
+			fs.copyFileSync("manifest.json", "build/manifest.json");
+			console.log("Updated manifest.json in build folder.");
+		} catch (err) {
+			console.error("Error updating manifest.json in build folder:", err);
+		}
+	});
+	if (fs.existsSync("styles.css")) {
+		fs.watch("styles.css", () => {
+			try {
+				fs.copyFileSync("styles.css", "build/styles.css");
+				console.log("Updated styles.css in build folder.");
+			} catch (err) {
+				console.error("Error updating styles.css in build folder:", err);
+			}
+		});
+	}
 }
