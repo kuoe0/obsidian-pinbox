@@ -191,6 +191,7 @@ export class PinboxSettingTab extends PluginSettingTab {
       this.plugin.settings.pinnedNotes.forEach((pinnedNote, index) => {
         const noteName =
           pinnedNote.path.split("/").pop()?.replace(".md", "") || "Note";
+        const fileExists = this.app.vault.getAbstractFileByPath(pinnedNote.path) instanceof TFile;
 
         const settingItem = containerEl.createDiv({
           cls: "pinbox-setting-item",
@@ -201,10 +202,13 @@ export class PinboxSettingTab extends PluginSettingTab {
         });
 
         const noteInfoEl = infoEl.createDiv({ cls: "setting-item-note-info" });
-        noteInfoEl.createDiv({ cls: "setting-item-name", text: noteName });
+        const nameEl = noteInfoEl.createDiv({ cls: "setting-item-name", text: fileExists ? noteName : `${noteName} (Missing)` });
+        if (!fileExists) {
+          nameEl.addClass("pinbox-warning-text");
+        }
         noteInfoEl.createDiv({
           cls: "setting-item-description",
-          text: `Path: ${pinnedNote.path}`,
+          text: fileExists ? `Path: ${pinnedNote.path}` : `Path: ${pinnedNote.path} (File not found)`,
         });
 
         // Add move buttons below the name/path

@@ -116,10 +116,16 @@ export default class PinboxPlugin extends Plugin {
                   .split("/")
                   .pop()
                   ?.replace(".md", "");
+                const fileExists = this.app.vault.getAbstractFileByPath(pinnedNote.path) instanceof TFile;
+                const title = fileExists ? `Append to ${noteName}` : `Append to ${noteName} (Missing)`;
                 item
-                  .setTitle(`Append to ${noteName}`)
-                  .setIcon("pin")
+                  .setTitle(title)
+                  .setIcon(fileExists ? "pin" : "alert-triangle")
                   .onClick(async () => {
+                    if (!fileExists) {
+                      new Notice(`Error: Note "${noteName}" not found at path: ${pinnedNote.path}`);
+                      return;
+                    }
                     await this.appendContentToNote(
                       pinnedNote.path,
                       pinnedNote.customFormat,

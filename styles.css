@@ -99,3 +99,7 @@
   border-top: 1px solid var(--background-modifier-border);
   padding: 0.75em 0;
 }
+
+.pinbox-warning-text {
+  color: var(--text-error);
+}
