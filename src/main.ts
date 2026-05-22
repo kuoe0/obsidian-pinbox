@@ -166,6 +166,41 @@ export default class PinboxPlugin extends Plugin {
     this.registerEvent(
       this.app.vault.on("rename", (file, oldPath) => this.handleFileRename(file, oldPath))
     );
+
+    this.addCommand({
+      id: "pin-current-note",
+      name: "Pin current note",
+      checkCallback: (checking: boolean) => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile instanceof TFile) {
+          if (!checking) {
+            this.pinNote(activeFile);
+          }
+          return true;
+        }
+        return false;
+      },
+    });
+
+    this.addCommand({
+      id: "unpin-current-note",
+      name: "Unpin current note",
+      checkCallback: (checking: boolean) => {
+        const activeFile = this.app.workspace.getActiveFile();
+        if (activeFile instanceof TFile) {
+          const isPinned = this.settings.pinnedNotes.some(
+            (pn) => pn.path === activeFile.path
+          );
+          if (isPinned) {
+            if (!checking) {
+              this.unpinNote(activeFile);
+            }
+            return true;
+          }
+        }
+        return false;
+      },
+    });
   }
 
   onunload() {}
@@ -215,5 +250,36 @@ export default class PinboxPlugin extends Plugin {
     if (settingsChanged) {
       await this.saveSettings();
     }
+  }
+
+  private async pinNote(file: TFile) {
+    const isAlreadyPinned = this.settings.pinnedNotes.some(
+      (pn) => pn.path === file.path
+    );
+    if (isAlreadyPinned) {
+      new Notice(`"${file.basename}" is already pinned.`);
+      return;
+    }
+
+    this.settings.pinnedNotes.push({
+      path: file.path,
+      customFormat: this.settings.globalDefaultFormat,
+    });
+    await this.saveSettings();
+    new Notice(`Pinned "${file.basename}"`);
+  }
+
+  private async unpinNote(file: TFile) {
+    const index = this.settings.pinnedNotes.findIndex(
+      (pn) => pn.path === file.path
+    );
+    if (index === -1) {
+      new Notice(`"${file.basename}" is not pinned.`);
+      return;
+    }
+
+    this.settings.pinnedNotes.splice(index, 1);
+    await this.saveSettings();
+    new Notice(`Unpinned "${file.basename}"`);
   }
 }
